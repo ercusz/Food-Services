@@ -1,10 +1,13 @@
 import socket
 import sys
 import threading
+import pickle
 
+login = False
 
 def handle_messages(connection: socket.socket):
-#Receive messages sent by the server and display them to user
+    #Receive messages sent by the server and display them to user
+    global login
     while True:
         try:
             msg = connection.recv(1024)
@@ -13,13 +16,21 @@ def handle_messages(connection: socket.socket):
             # so the connection will be closed and an error will be displayed.
             # If not, it will try to decode message in order to show to user.
             if msg:
-                print(msg.decode())
+
+                if pickle.loads(msg) =='ok':
+                    login = True
+                    print('Login Successfully')
+                else:
+                    if pickle.loads(msg) =='failed':
+                        print('Login Fail')
+                        connection.close()
+
             else:
                 connection.close()
                 break
 
         except Exception as e:
-            #print(f'Error handling message from server: {e}')
+            print(f'Error handling message from server: {e}')
             print("!Disconnected")
             connection.close()
             break
@@ -28,7 +39,7 @@ def main() -> None:
     customPort = int(input('Input port number(4 digits): '))
     host = "127.0.0.1"
     port = customPort
-
+    global login
     try:
         socket_instance = socket.socket()
         socket_instance.connect((host, port))
@@ -36,29 +47,58 @@ def main() -> None:
         print('!Connected')
         print("Client start with " + host + ":" + str(port))
 
-        name = ""
-        while name == "":
-            print("Please enter your name.")
-            name = "--name " + input(">> ")
-            socket_instance.send(name.encode())
+        chk = input("Do you have an acoount? (y/N):")
+        if chk.lower() == 'y':
+            Login(socket_instance)
+        else:
+            Register(socket_instance)
 
-        print("TIPS: Enter 'exit' to terminate program.")
+        while Login:
+            print("TIPS: Type 'exit' to terminate program.")
 
-        while True:
-            msg = input(name[7:].upper()+">> ")
+            while True:
+                msg = input('>> ')
+                if msg.lower() == 'exit':
+                    break
 
-            if msg.lower() == 'exit':
-                break
+                socket_instance.send(pickle.dumps(msg))
 
-            socket_instance.send(msg.encode())
-
-        socket_instance.close()
+            socket_instance.close()
 
     except:
         print('Error, Can\'t connect to server!')
         socket_instance.close()
         sys.exit()
 
+def Register(socket_instance):
+    print('Register')
+    account = {}
+    account['username'] = input('username: ')
+    account['password'] = input('password: ')
+    confirmpassword = input('confirm password: ')
+    account['phone'] = input('phone: ')
+    if account['password'] == confirmpassword:
+        socket_instance.send(pickle.dumps(account))
+    else:
+        print('Password doesn\'t match')
+        Register(socket_instance)
+
+def Login(socket_instance):
+    print('>> Login')
+    account = {}
+    account['username'] = input('username: ')
+    account['password'] = input('password: ')
+
+    socket_instance.send(pickle.dumps(account))
+
+def LoginOrRegister(socket_instance):
+
+    while not Login:
+        chk = input("Do you have an acoount? (y/N):")
+        if chk.lower() == 'y':
+            Login(socket_instance)
+        else:
+            Register(socket_instance)
 
 if __name__ == "__main__":
     main()
