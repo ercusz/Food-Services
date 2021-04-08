@@ -5,11 +5,10 @@ import pickle
 
 # Global variable that mantain client's connections
 connections = []
-#connections_info = {}
+connections_info = {}
 login = False
-username = 'peter'
-password = 'parker'
 account = {}
+
 
 def handle_user_connection(connection: socket.socket, address: str) -> None:
     '''
@@ -17,6 +16,8 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
         sent to others users/connections.
     '''
     global login
+    global testmenu
+    global testacc
     while True:
         try:
             # Get client message
@@ -27,18 +28,35 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                 while not login:
                     account = pickle.loads(msg)
 
-                    if account['username'] == username and account['password'] == password:
-                        connection.send(pickle.dumps('ok'))
-                        login = True
+                    if account['type'] == 'login':
+                        del account['type']
+                        if(db.login(account) == True):
+                            connection.send(pickle.dumps('ok'))
+                            login = True
+                        else:
+                            connection.send(pickle.dumps('failed'))
+                    elif account['type'] == 'reg':
+                        del account['type']
+                        if (db.register(account) == True):
+                            connection.send(pickle.dumps('ok'))
+                            login = True
+                        else:
+                            connection.send(pickle.dumps('failed'))
                     else:
                         connection.send(pickle.dumps('failed'))
 
-                # Log message sent by user
-                print(f'({address[0]}:{address[1]}) - {pickle.loads(msg)}')
+                if isinstance(pickle.loads(msg), str):
+                    if pickle.loads(msg)[:6] == '--menu':
+                        print(f'Sending menu to ({address[0]}:{address[1]})')
+                        connection.send(pickle.dumps(testmenu))
+                    else:
+                        if pickle.loads(msg) != "":
+                            # Log message sent by user
+                            print(f'({address[0]}:{address[1]}) - {pickle.loads(msg)}')
 
-                # Build message format and broadcast to users connected on server
-                msg_to_send = f'From ({address[0]}:{address[1]}) - {pickle.loads(msg)}'
-                broadcast(msg_to_send, connection)
+                            # Build message format and broadcast to users connected on server
+                            msg_to_send = f'From ({address[0]}:{address[1]}) - {pickle.loads(msg)}'
+                            broadcast(msg_to_send, connection)
 
             # Close connection if no message was sent
             else:
@@ -46,7 +64,7 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                 break
 
         except Exception as e:
-            print(f'Error to handle user connection: {e}')
+            #print(f'Error to handle user connection: {e}')
             print(f'({address[0]}:{address[1]} disconnected)')
             remove_connection(connection)
             break
@@ -70,7 +88,6 @@ def broadcast(message: str, connection: socket.socket) -> None:
                 remove_connection(client_conn)
 
 
-
 def remove_connection(conn: socket.socket) -> None:
     '''
         Remove specified connection from connections list
@@ -90,6 +107,7 @@ def main() -> None:
     '''
     global login
     global account
+
     useCustomPort = input('Do you want to setup port manually? (y/N): ')
     if (useCustomPort.lower() == 'y'):
         LISTENING_PORT = int(input('Input port number(4 digits): '))
@@ -117,10 +135,9 @@ def main() -> None:
             threading.Thread(target=handle_user_connection, args=[socket_connection, address]).start()
 
 
-
     except Exception as e:
         print(f'({address[0]}:{address[1]} disconnected.)')
-        print(f'An error has occurred when instancing socket: {e}')
+        #print(f'An error has occurred when instancing socket: {e}')
     finally:
         # In case of any problem we clean all connections and close the server connection
         if len(connections) > 0:

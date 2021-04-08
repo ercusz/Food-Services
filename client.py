@@ -19,21 +19,29 @@ def handle_messages(connection: socket.socket):
 
                 if pickle.loads(msg) =='ok':
                     login = True
-                    print('Login Successfully')
+                    print('Process Successfully')
+                    print()
                 else:
                     if pickle.loads(msg) =='failed':
                         print('Login Fail')
                         connection.close()
+
+                if isinstance(pickle.loads(msg), list):
+                    if 'menuId' in pickle.loads(msg)[0].keys():
+                        for menu in pickle.loads(msg):
+                            for title, value in menu.items():
+                                print(f'{title}: {value}')
 
             else:
                 connection.close()
                 break
 
         except Exception as e:
-            print(f'Error handling message from server: {e}')
+            #print(f'Error handling message from server: {e}')
             print("!Disconnected")
             connection.close()
             break
+
 
 def main() -> None:
     customPort = int(input('Input port number(4 digits): '))
@@ -47,7 +55,7 @@ def main() -> None:
         print('!Connected')
         print("Client start with " + host + ":" + str(port))
 
-        chk = input("Do you have an acoount? (y/N):")
+        chk = input("Do you have an account? (y/N): ")
         if chk.lower() == 'y':
             Login(socket_instance)
         else:
@@ -66,13 +74,15 @@ def main() -> None:
             socket_instance.close()
 
     except:
-        print('Error, Can\'t connect to server!')
+        #print('Error, Can\'t connect to server!')
         socket_instance.close()
         sys.exit()
+
 
 def Register(socket_instance):
     print('Register')
     account = {}
+    account['type'] = 'reg'
     account['username'] = input('username: ')
     account['password'] = input('password: ')
     confirmpassword = input('confirm password: ')
@@ -83,22 +93,14 @@ def Register(socket_instance):
         print('Password doesn\'t match')
         Register(socket_instance)
 
+
 def Login(socket_instance):
     print('>> Login')
     account = {}
+    account['type'] = 'login'
     account['username'] = input('username: ')
     account['password'] = input('password: ')
-
     socket_instance.send(pickle.dumps(account))
-
-def LoginOrRegister(socket_instance):
-
-    while not Login:
-        chk = input("Do you have an acoount? (y/N):")
-        if chk.lower() == 'y':
-            Login(socket_instance)
-        else:
-            Register(socket_instance)
 
 if __name__ == "__main__":
     main()
