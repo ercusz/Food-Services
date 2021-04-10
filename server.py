@@ -16,8 +16,6 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
         sent to others users/connections.
     '''
     global login
-    global testmenu
-    global testacc
     while True:
         try:
             # Get client message
@@ -28,35 +26,53 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                 while not login:
                     account = pickle.loads(msg)
 
-                    if account['type'] == 'login':
-                        del account['type']
-                        if(db.login(account) == True):
-                            connection.send(pickle.dumps('ok'))
-                            login = True
+                    if type(account) == dict:
+                        if account['type'] == 'login':
+                            del account['type']
+                            if db.login(account):
+                                res = packed_respond('success', 'Login Successfully.')
+                                connection.send(pickle.dumps(res))
+                                login = True
+                            else:
+                                res = packed_respond('err', 'Login Fail.')
+                                connection.send(pickle.dumps(res))
+                        elif account['type'] == 'reg':
+                            del account['type']
+                            if db.register(account):
+                                res = packed_respond('success', 'Register Successfully.')
+                                connection.send(pickle.dumps(res))
+                                login = True
+                            else:
+                                res = packed_respond('err', 'Register Fail.')
+                                connection.send(pickle.dumps(res))
                         else:
                             connection.send(pickle.dumps('failed'))
-                    elif account['type'] == 'reg':
-                        del account['type']
-                        if (db.register(account) == True):
-                            connection.send(pickle.dumps('ok'))
-                            login = True
+
+                msg_decode = pickle.loads(msg)
+                #print(msg_decode)
+                if type(msg_decode) == dict:
+                    if msg_decode['type'] == 'add rest':
+                        del msg_decode['type']
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.add_restaurant_data(msg_decode)
+                            if result == 'err_rest':
+                                res = packed_respond('err', 'Duplicate restaurant\'s name.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_rest':
+                                res = packed_respond('success', 'Setting up restaurant successfully.')
+                                connection.send(pickle.dumps(res))
+
                         else:
-                            connection.send(pickle.dumps('failed'))
-                    else:
-                        connection.send(pickle.dumps('failed'))
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
 
-                if isinstance(pickle.loads(msg), str):
-                    if pickle.loads(msg)[:6] == '--menu':
-                        print(f'Sending menu to ({address[0]}:{address[1]})')
-                        connection.send(pickle.dumps(testmenu))
-                    else:
-                        if pickle.loads(msg) != "":
-                            # Log message sent by user
-                            print(f'({address[0]}:{address[1]}) - {pickle.loads(msg)}')
+                #if pickle.loads(msg) != "":
+                    #Log message sent by user
+                    #print(f'({address[0]}:{address[1]}) - {pickle.loads(msg)}')
 
-                            # Build message format and broadcast to users connected on server
-                            msg_to_send = f'From ({address[0]}:{address[1]}) - {pickle.loads(msg)}'
-                            broadcast(msg_to_send, connection)
+                    # Build message format and broadcast to users connected on server
+                    #msg_to_send = f'From ({address[0]}:{address[1]}) - {pickle.loads(msg)}'
+                    #broadcast(msg_to_send, connection)
 
             # Close connection if no message was sent
             else:
@@ -64,11 +80,17 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                 break
 
         except Exception as e:
-            #print(f'Error to handle user connection: {e}')
+            print(f'Error to handle user connection: {e}')
             print(f'({address[0]}:{address[1]} disconnected)')
             remove_connection(connection)
             break
 
+
+def packed_respond(restype: str, message: str):
+    res = {}
+    res['type'] = restype
+    res['msg'] = message
+    return res
 
 def broadcast(message: str, connection: socket.socket) -> None:
     '''
@@ -117,10 +139,10 @@ def main() -> None:
     try:
         # Create server and specifying that it can only handle 4 connections by time!
         socket_instance = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        socket_instance.bind(('127.0.0.1', LISTENING_PORT))
+        socket_instance.bind(('', LISTENING_PORT))
         socket_instance.listen(4)
 
-        print('Server running!')
+        print(f'Server running with port {LISTENING_PORT}')
 
         while True:
             # Accept client connection
@@ -137,7 +159,7 @@ def main() -> None:
 
     except Exception as e:
         print(f'({address[0]}:{address[1]} disconnected.)')
-        #print(f'An error has occurred when instancing socket: {e}')
+        print(f'An error has occurred when instancing socket: {e}')
     finally:
         # In case of any problem we clean all connections and close the server connection
         if len(connections) > 0:
