@@ -64,7 +64,6 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                         else:
                             res = packed_respond('err', 'Your account type is not restaurant.')
                             connection.send(pickle.dumps(res))
-
                     elif msg_decode['type'] == 'open-rest' or msg_decode['type'] == 'close-rest':
                         if db.check_restaurant_account(msg_decode['username']):
                             result = db.open_close_restaurant(msg_decode)
@@ -80,6 +79,26 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                         else:
                             res = packed_respond('err', 'Your account type is not restaurant.')
                             connection.send(pickle.dumps(res))
+                    elif msg_decode['type'] == 'edit-rest-name' or msg_decode['type'] == 'edit-rest-phone' or msg_decode['type'] == 'edit-rest-type':
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.update_restaurant(msg_decode)
+                            if result == 'err_user_not_found':
+                                res = packed_respond('err', 'Update restaurant failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_rest_name':
+                                res = packed_respond('success', 'Restaurant name updated.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_rest_phone':
+                                res = packed_respond('success', 'Restaurant phone updated.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_rest_type':
+                                res = packed_respond('success', 'Restaurant type updated.')
+                                connection.send(pickle.dumps(res))
+
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
 
 
                 #if pickle.loads(msg) != "":

@@ -97,6 +97,7 @@ def add_restaurant_data(data):
         print(f'Create restaurant failed, because {e}')
         return False
 
+
 def open_close_restaurant(data):
     try:
         user_data = user.find_one({'username': data['username']})
@@ -118,6 +119,36 @@ def open_close_restaurant(data):
 
     except Exception as e:
         print(f'Open or close restaurant failed, because {e}')
+        return False
+
+
+def update_restaurant(data):
+    try:
+        user_data = user.find_one({'username': data['username']})
+        if user_data and data['type'] == 'edit-rest-name':
+            rest = restaurant.find_one_and_update({'_id': user_data['ownerOf']},
+                                                  {'$set': {'name': data['value']}},
+                                                  return_document=ReturnDocument.AFTER)
+            print(f"Restaurant id: ({rest['_id']}) name updated by owner: ({data['username']})")
+            return 'success_rest_name'
+        elif user_data and data['type'] == 'edit-rest-phone':
+            rest = restaurant.find_one_and_update({'_id': user_data['ownerOf']},
+                                                  {'$set': {'phone': data['value']}},
+                                                  return_document=ReturnDocument.AFTER)
+            print(f"Restaurant id: ({rest['_id']}) phone updated by owner: ({data['username']})")
+            return 'success_rest_phone'
+        elif user_data and data['type'] == 'edit-rest-type':
+            rest = restaurant.find_one_and_update({'_id': user_data['ownerOf']},
+                                                  {'$set': {'rest_type': data['value']}},
+                                                  return_document=ReturnDocument.AFTER)
+            print(f"Restaurant id: ({rest['_id']}) type updated by owner: ({data['username']})")
+            return 'success_rest_type'
+        else:
+            print('Restaurant update failed, because user not found.')
+            return 'err_user_not_found'
+
+    except Exception as e:
+        print(f'Restaurant update failed, because {e}')
         return False
 
 

@@ -100,7 +100,7 @@ def main() -> None:
                 elif msg.lower() == '/help rest':
                     get_rest_commands()
                 elif msg.lower()[:6] == '/rest ':
-                    rest_command(msg.lower(), socket_instance)
+                    rest_command(msg, socket_instance)
                 else:
                     print(f'<red>Unknown the `{msg}` command.</red>')
 
@@ -188,13 +188,30 @@ def get_rest_commands():
 
 
 def rest_command(cmd: str, connection: socket.socket):
-    if cmd == '/rest setup':
+    global username
+    if cmd.lower() == '/rest setup':
         AddRestaurantData(connection)
-    elif cmd[:10] == '/rest edit':
-        print('edit rest')
-    elif cmd == '/rest open':
+    elif cmd[:11].lower() == '/rest edit ':
+        data = {}
+        data['username'] = username
+        _cmd = cmd.split()
+        if _cmd[2].lower() == 'name':
+            data['type'] = 'edit-rest-name'
+            data['value'] = _cmd[3]
+            connection.send(pickle.dumps(data))
+        elif _cmd[2].lower() == 'phone':
+            data['type'] = 'edit-rest-phone'
+            data['value'] = _cmd[3]
+            connection.send(pickle.dumps(data))
+        elif _cmd[2].lower() == 'rest_type':
+            data['type'] = 'edit-rest-type'
+            data['value'] = _cmd[3]
+            connection.send(pickle.dumps(data))
+        else:
+            print(f'<red>Unknown the `{_cmd[2]}` field.</red>')
+    elif cmd.lower() == '/rest open':
         rest_open(connection)
-    elif cmd == '/rest close':
+    elif cmd.lower() == '/rest close':
         rest_close(connection)
     else:
         print(f'<red>Unknown the `{cmd}` command.</red>')
