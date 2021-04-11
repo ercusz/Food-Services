@@ -1,3 +1,4 @@
+import os
 import socket
 import sys
 import threading
@@ -5,17 +6,18 @@ import pickle
 import database as db
 from ansimarkup import ansiprint as print
 
-login = False
+isLogin = False
 username = ""
-error = "\n<bold,black,red>\U0000274CERROR</bold,black,red>"
-success = "\n<bold,black,green>\U00002705SUCCESS</bold,black,green>"
-connect = "\n<bold,black,green>\U00002705CONNECTED</bold,black,green>"
-disconnect = "\n<bold,black,red>\U0000274CDISCONNECTED</bold,black,red>"
-tips = "\n<bold,black,><bg #F4D03F>\U0001F4A1TIPS</bg #F4D03F></bold,black,>"
+error = "\n<bold,,red><fg #FFFFFF>\U0000274CERROR</fg #FFFFFF></bold,,red>"
+success = "\n<bold,,green><fg #000000>\U00002705SUCCESS</fg #000000></bold,,green>"
+connect = "\n<bold,,green><fg #000000>\U00002705CONNECTED</fg #000000></bold,,green>"
+disconnect = "\n<bold,,red><fg #000000>\U0000274CDISCONNECTED</fg #000000></bold,,red>"
+tips = "\n<bold><fg #000000><bg #F4D03F>\U0001F4A1TIPS</bg #F4D03F></fg #000000></bold>"
 
 def handle_messages(connection: socket.socket):
     #Receive messages sent by the server and display them to user
-    global login
+    global isLogin
+    global username
     global error
     global success
     global disconnect
@@ -36,16 +38,19 @@ def handle_messages(connection: socket.socket):
                         send_msg = decode_msg['msg']
                         print(error + " " + send_msg)
                         if decode_msg['msg'] == 'Login Fail.':
-                            login = False
+                            isLogin = False
                             connection.close()
 
                     elif decode_msg['type'] == 'success':
-                        print()
                         send_msg = decode_msg['msg']
                         print(success + " " + send_msg)
                         if decode_msg['msg'] == 'Login Successfully.':
-                            print(tips + " " + "Type 'exit' to terminate program.")
-                            login = True
+                            os.system('cls' if os.name == 'nt' else 'clear')
+                            print('<bold><fg #ffffff><bg #000000>'+'\n\U0001F44BHi, '+username.upper()+'! are you hungry?\n'+'</bg #000000></fg #ffffff></bold>')
+                            print(tips + " " + "Type `/exit` to terminate program.")
+                            print(tips + " " + "Type `/help` to see all commands.")
+                            print()
+                            isLogin = True
 
                 # if isinstance(pickle.loads(msg), list):
                 #     if 'menuId' in pickle.loads(msg)[0].keys():
@@ -59,7 +64,7 @@ def handle_messages(connection: socket.socket):
 
         except Exception as e:
             print(f'Error handling message from server: {e}')
-            print(disconnect)
+            #print(disconnect+' by server.')
             connection.close()
             break
 
@@ -68,9 +73,10 @@ def main() -> None:
     customPort = int(input('Input port number(4 digits): '))
     host = "127.0.0.1"
     port = customPort
-    global login
+    global isLogin
     global connect
     global disconnect
+    global username
     try:
         socket_instance = socket.socket()
         socket_instance.connect((host, port))
@@ -84,18 +90,24 @@ def main() -> None:
         else:
             Register(socket_instance)
 
-        while Login:
-            while True:
-                msg = input('>> ')
-                if msg.lower() == 'exit':
+        while True:
+            if isLogin:
+                msg = input(username.upper() + '> ')
+                if msg.lower() == '/exit':
                     break
-                if msg.lower() == '--set rest':
-                    AddRestaurantData(socket_instance)
+                elif msg.lower() == '/help':
+                    get_commands()
+                elif msg.lower() == '/help rest':
+                    get_rest_commands()
+                elif msg.lower()[:6] == '/rest ':
+                    rest_command(msg.lower(), socket_instance)
+                else:
+                    print(f'<red>Unknown the `{msg}` command.</red>')
 
-                #socket_instance.send(pickle.dumps(msg))
+            #socket_instance.send(pickle.dumps(msg))
 
 
-            socket_instance.close(socket_instance)
+        socket_instance.close(socket_instance)
         sys.exit()
         print(disconnect)
 
@@ -151,6 +163,58 @@ def AddRestaurantData(socket_instance):
     rest['phone'] = input('restaurant phone: ')
     rest['username'] = username
     socket_instance.send(pickle.dumps(rest))
+
+
+def get_commands():
+    cmd = [
+        {'command': '/help', 'desc': 'see all commands.'},
+        {'command': '/exit', 'desc': 'disconnect from server & exit program'},
+        {'command': '/rest', 'desc': 'the commands for restaurant.\n\tusing `<b><fg #1BF4FF>/help rest</fg #1BF4FF></b>` to see more restaurant commands.'},
+        {'command': '/user', 'desc': 'the commands for user.\n\tusing `<b><fg #1BF4FF>/help user</fg #1BF4FF></b>` to see more user commands.'}
+    ]
+    for c in cmd:
+        print('<b><fg #1BF4FF>' + c['command'] + '</fg #1BF4FF></b>' + "\t" + c['desc'])
+
+
+def get_rest_commands():
+    cmd = [
+        {'command': '/rest setup', 'desc': 'add restaurant into system. (for first time only)'},
+        {'command': '/rest edit <name/phone/rest_type> <value>', 'desc': 'edit restaurant information.'},
+        {'command': '/rest open', 'desc': 'open restaurant'},
+        {'command': '/rest close', 'desc': 'close restaurant.'}
+    ]
+    for c in cmd:
+        print('<b><fg #1BF4FF>' + c['command'] + '</fg #1BF4FF></b>' + "\t" + c['desc'])
+
+
+def rest_command(cmd: str, connection: socket.socket):
+    if cmd == '/rest setup':
+        AddRestaurantData(connection)
+    elif cmd[:10] == '/rest edit':
+        print('edit rest')
+    elif cmd == '/rest open':
+        rest_open(connection)
+    elif cmd == '/rest close':
+        rest_close(connection)
+    else:
+        print(f'<red>Unknown the `{cmd}` command.</red>')
+
+
+def rest_open(connection: socket.socket):
+    global username
+    data = {}
+    data['username'] = username
+    data['type'] = 'open-rest'
+    connection.send(pickle.dumps(data))
+
+
+def rest_close(connection: socket.socket):
+    global username
+    data = {}
+    data['username'] = username
+    data['type'] = 'close-rest'
+    connection.send(pickle.dumps(data))
+
 
 if __name__ == "__main__":
     main()

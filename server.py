@@ -61,10 +61,26 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                             elif result == 'success_rest':
                                 res = packed_respond('success', 'Setting up restaurant successfully.')
                                 connection.send(pickle.dumps(res))
-
                         else:
                             res = packed_respond('err', 'Your account type is not restaurant.')
                             connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'open-rest' or msg_decode['type'] == 'close-rest':
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.open_close_restaurant(msg_decode)
+                            if result == 'err_user_not_found':
+                                res = packed_respond('err', 'Open/close restaurant failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_open':
+                                res = packed_respond('success', 'Restaurant opened.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_close':
+                                res = packed_respond('success', 'Restaurant closed.')
+                                connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
 
                 #if pickle.loads(msg) != "":
                     #Log message sent by user

@@ -57,10 +57,10 @@ def login(data):
     data['password'] = encrypt_password(data['password'])
     userdata = user.find_one(data)
     if userdata is not None and userdata['password'] == data['password']:
-        print(f'{data["username"]} Logged in')
+        print(f'{data["username"]} logged in.')
         return True
     else:
-        print(f'Failed to logged in with username: {data["username"]}')
+        print(f'Failed to logged in with username: {data["username"]}.')
         return False
 
 
@@ -82,6 +82,7 @@ def add_restaurant_data(data):
         username = data['username']
         del data['username']
         data['rating'] = 0
+        data['open'] = False
         if not restaurant.find_one({'name': data['name']}):
             _id = restaurant.insert(data)
             rest = user.find_one_and_update({'username': username},
@@ -95,5 +96,31 @@ def add_restaurant_data(data):
     except Exception as e:
         print(f'Create restaurant failed, because {e}')
         return False
+
+def open_close_restaurant(data):
+    try:
+        user_data = user.find_one({'username': data['username']})
+        if user_data and data['type'] == 'open-rest':
+            rest = restaurant.find_one_and_update({'_id': user_data['ownerOf']},
+                                            {'$set': {'open': True}},
+                                            return_document=ReturnDocument.AFTER)
+            print(f"Restaurant id: ({rest['_id']}) opened by owner: ({data['username']})")
+            return 'success_open'
+        elif user_data and data['type'] == 'close-rest':
+            rest = restaurant.find_one_and_update({'_id': user_data['ownerOf']},
+                                            {'$set': {'open': False}},
+                                            return_document=ReturnDocument.AFTER)
+            print(f"Restaurant id: ({rest['_id']}) closed by owner: ({data['username']})")
+            return 'success_close'
+        else:
+            print('Open or close restaurant failed, because user not found.')
+            return 'err_user_not_found'
+
+    except Exception as e:
+        print(f'Open or close restaurant failed, because {e}')
+        return False
+
+
+
 
 
