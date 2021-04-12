@@ -152,6 +152,17 @@ def update_restaurant(data):
         return False
 
 
+def update_user(data):
+    try:
+        _user = user.find_one_and_update({'username': data['username']},
+                                        {'$set': {'phone': data['value']}},
+                                        return_document=ReturnDocument.AFTER)
+        print(f"User id: ({_user['_id']}) phone number updated.")
+        return True
+    except Exception as e:
+        print(f'User phone number update failed, because {e}')
+        return False
+
 
 
 

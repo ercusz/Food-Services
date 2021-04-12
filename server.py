@@ -94,11 +94,16 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                             elif result == 'success_rest_type':
                                 res = packed_respond('success', 'Restaurant type updated.')
                                 connection.send(pickle.dumps(res))
-
                         else:
                             res = packed_respond('err', 'Your account type is not restaurant.')
                             connection.send(pickle.dumps(res))
-
+                    elif msg_decode['type'] == 'edit-user-phone':
+                        if db.update_user(msg_decode):
+                            res = packed_respond('success', 'Your account phone number is updated.')
+                            connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'Update phone number failed.')
+                            connection.send(pickle.dumps(res))
 
 
                 #if pickle.loads(msg) != "":

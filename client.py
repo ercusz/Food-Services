@@ -37,6 +37,7 @@ def handle_messages(connection: socket.socket):
                     if decode_msg['type'] == 'err':
                         send_msg = decode_msg['msg']
                         print(error + " " + send_msg)
+                        print()
                         if decode_msg['msg'] == 'Login Fail.':
                             isLogin = False
                             connection.close()
@@ -44,6 +45,7 @@ def handle_messages(connection: socket.socket):
                     elif decode_msg['type'] == 'success':
                         send_msg = decode_msg['msg']
                         print(success + " " + send_msg)
+                        print()
                         if decode_msg['msg'] == 'Login Successfully.':
                             os.system('cls' if os.name == 'nt' else 'clear')
                             print('<bold><fg #ffffff><bg #000000>'+'\n\U0001F44BHi, '+username.upper()+'! are you hungry?\n'+'</bg #000000></fg #ffffff></bold>')
@@ -99,8 +101,12 @@ def main() -> None:
                     get_commands()
                 elif msg.lower() == '/help rest':
                     get_rest_commands()
+                elif msg.lower() == '/help user':
+                    get_user_commands()
                 elif msg.lower()[:6] == '/rest ':
                     rest_command(msg, socket_instance)
+                elif msg.lower()[:6] == '/user ':
+                    user_command(msg, socket_instance)
                 else:
                     print(f'<red>Unknown the `{msg}` command.</red>')
 
@@ -185,6 +191,27 @@ def get_rest_commands():
     ]
     for c in cmd:
         print('<b><fg #1BF4FF>' + c['command'] + '</fg #1BF4FF></b>' + "\t" + c['desc'])
+
+
+def get_user_commands():
+    cmd = [
+        {'command': '/user edit phone <value>', 'desc': 'edit user phone number.'},
+    ]
+    for c in cmd:
+        print('<b><fg #1BF4FF>' + c['command'] + '</fg #1BF4FF></b>' + "\t" + c['desc'])
+
+
+def user_command(cmd: str, connection: socket.socket):
+    global username
+    if cmd[:17].lower() == '/user edit phone ':
+        _cmd = cmd.split()
+        data = {}
+        data['username'] = username
+        data['type'] = 'edit-user-phone'
+        data['value'] = _cmd[3]
+        connection.send(pickle.dumps(data))
+    else:
+        print(f'<red>Unknown the `{cmd}` command.</red>')
 
 
 def rest_command(cmd: str, connection: socket.socket):
