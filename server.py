@@ -1,7 +1,12 @@
+import os
 import socket
 import threading
 import database as db
 import pickle
+import logging
+import sys
+
+
 
 # Global variable that mantain client's connections
 connections = []
@@ -105,6 +110,90 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                             res = packed_respond('err', 'Update phone number failed.')
                             connection.send(pickle.dumps(res))
 
+                    elif msg_decode['type'] == 'add-category':
+                        del msg_decode['type']
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.add_category(msg_decode)
+                            if result == 'err_add_cate':
+                                res = packed_respond('err', 'Add category to restaurant failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_add_cate':
+                                res = packed_respond('success', 'Category created.')
+                                connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'remove-category':
+                        del msg_decode['type']
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.remove_category(msg_decode)
+                            if result == 'err_remove_cate':
+                                res = packed_respond('err', 'Remove category failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_remove_cate':
+                                res = packed_respond('success', 'Category removed.')
+                                connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'edit-category':
+                        del msg_decode['type']
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.update_category(msg_decode)
+                            if result == 'err_edit_cate':
+                                res = packed_respond('err', 'Update category failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_edit_cate':
+                                res = packed_respond('success', 'Category updated.')
+                                connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'add-menu':
+                        del msg_decode['type']
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.add_menu(msg_decode)
+                            if result == 'err_add_menu':
+                                res = packed_respond('err', 'Add menu to restaurant failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_add_menu':
+                                res = packed_respond('success', 'Menu created.')
+                                connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'remove-menu':
+                        del msg_decode['type']
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.remove_menu(msg_decode)
+                            if result == 'err_remove_menu':
+                                res = packed_respond('err', 'Remove menu failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_remove_menu':
+                                res = packed_respond('success', 'Menu removed.')
+                                connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'edit-menu':
+                        del msg_decode['type']
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.update_menu(msg_decode)
+                            if result == 'err_edit_menu':
+                                res = packed_respond('err', 'Update menu failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result == 'success_edit_menu':
+                                res = packed_respond('success', 'Menu updated.')
+                                connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
 
                 #if pickle.loads(msg) != "":
                     #Log message sent by user
@@ -120,9 +209,10 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                 break
 
         except Exception as e:
-            print(f'Error to handle user connection: {e}')
-            print(f'({address[0]}:{address[1]} disconnected)')
+            logging.error(f'Error to handle user connection: {e}')
+            logging.info(f'({address[0]}:{address[1]} disconnected)')
             remove_connection(connection)
+            change_title()
             break
 
 
@@ -131,6 +221,7 @@ def packed_respond(restype: str, message: str):
     res['type'] = restype
     res['msg'] = message
     return res
+
 
 def broadcast(message: str, connection: socket.socket) -> None:
     '''
@@ -146,7 +237,8 @@ def broadcast(message: str, connection: socket.socket) -> None:
 
             # if it fails, there is a chance of socket has died
             except Exception as e:
-                print('Error broadcasting message: {e}')
+                logging.error('Error broadcasting message: {e}')
+                change_title()
                 remove_connection(client_conn)
 
 
@@ -163,12 +255,25 @@ def remove_connection(conn: socket.socket) -> None:
 
 
 def main() -> None:
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+
+    output_file_handler = logging.FileHandler("server.log")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    output_file_handler.setFormatter(formatter)
+    root.addHandler(handler)
+    root.addHandler(output_file_handler)
+
     '''
         Main process that receive client's connections and start a new thread
         to handle their messages
     '''
     global login
     global account
+    global connections
 
     useCustomPort = input('Do you want to setup port manually? (y/N): ')
     if (useCustomPort.lower() == 'y'):
@@ -182,14 +287,15 @@ def main() -> None:
         socket_instance.bind(('', LISTENING_PORT))
         socket_instance.listen(4)
 
-        print(f'Server running with port {LISTENING_PORT}')
+        logging.info(f'Server running with port {LISTENING_PORT}')
 
         while True:
             # Accept client connection
             socket_connection, address = socket_instance.accept()
             # Add client connection to connections list
             connections.append(socket_connection)
-            print(f'({address[0]}:{address[1]} connected)')
+            change_title()
+            logging.info(f'({address[0]}:{address[1]} connected)')
             login = False
             account = {}
             # Start a new thread to handle client connection and receive it's messages
@@ -198,8 +304,10 @@ def main() -> None:
 
 
     except Exception as e:
-        print(f'({address[0]}:{address[1]} disconnected.)')
-        print(f'An error has occurred when instancing socket: {e}')
+        logging.info(f'({address[0]}:{address[1]} disconnected.)')
+        logging.error(f'An error has occurred when instancing socket: {e}')
+        change_title()
+        remove_connection(socket_connection)
     finally:
         # In case of any problem we clean all connections and close the server connection
         if len(connections) > 0:
@@ -207,6 +315,10 @@ def main() -> None:
                 remove_connection(conn)
 
         socket_instance.close()
+
+
+def change_title():
+    os.system("title " + "(SERVE)CONNECTED CLIENT = " + str(len(connections)))
 
 
 if __name__ == "__main__":

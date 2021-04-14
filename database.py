@@ -1,14 +1,20 @@
+import logging
+import os
+import sys
 from datetime import datetime, timezone
 import pytz
 import pymongo
 import bcrypt
 from pymongo import ReturnDocument
 
+
 client = pymongo.MongoClient("mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false")
 db = client.FoodServices
 user = db.user
 restaurant = db.restaurant
 restaurant_type = db.restaurantType
+category = db.category
+menu = db.menu
 salt = b'$2b$12$.oAv5kYzQ/bLcPlRVhtnHe'
 
 
@@ -40,16 +46,16 @@ def register(user_data):
 
             user_id = user.insert_one(user_data).inserted_id
             if user_data['restaurant']:
-                print(f"New user created with id: ({user_id}), type = restaurant")
+                logging.info(f"New user created with id: ({user_id}), type = restaurant")
             else:
-                print(f"New user created with id: ({user_id}), type = user")
+                logging.info(f"New user created with id: ({user_id}), type = user")
             return True
         except Exception as e:
-            print(f'Create account failed: because {e}')
+            logging.error(f'Create account failed: because {e}')
             return False
 
     else:
-        print('Create account failed, because duplicate account!')
+        logging.error('Create account failed, because duplicate account!')
         return False
 
 
@@ -57,10 +63,10 @@ def login(data):
     data['password'] = encrypt_password(data['password'])
     userdata = user.find_one(data)
     if userdata is not None and userdata['password'] == data['password']:
-        print(f'{data["username"]} logged in.')
+        logging.info(f'{data["username"]} logged in.')
         return True
     else:
-        print(f'Failed to logged in with username: {data["username"]}.')
+        logging.error(f'Failed to logged in with username: {data["username"]}.')
         return False
 
 
@@ -74,7 +80,7 @@ def check_restaurant_account(data):
 
 def get_restaurant_type():
     for type in restaurant_type.find():
-        print(f'ID: {type["type_id"]}, Name: {type["name"]}')
+        logging.info(f'ID: {type["type_id"]}, Name: {type["name"]}')
 
 
 def add_restaurant_data(data):
@@ -88,13 +94,13 @@ def add_restaurant_data(data):
             rest = user.find_one_and_update({'username': username},
                                        {'$set': {'ownerOf': _id}},
                                         return_document = ReturnDocument.AFTER)
-            print(f"New restaurant created with id: ({rest['_id']}), owner: ({username})")
+            logging.info(f"New restaurant created with id: ({rest['_id']}), owner: ({username})")
             return 'success_rest'
         else:
-            print('Create restaurant failed, because the restaurant name is duplicated.')
+            logging.error('Create restaurant failed, because the restaurant name is duplicated.')
             return 'err_rest'
     except Exception as e:
-        print(f'Create restaurant failed, because {e}')
+        logging.error(f'Create restaurant failed, because {e}')
         return False
 
 
@@ -105,20 +111,20 @@ def open_close_restaurant(data):
             rest = restaurant.find_one_and_update({'_id': user_data['ownerOf']},
                                             {'$set': {'open': True}},
                                             return_document=ReturnDocument.AFTER)
-            print(f"Restaurant id: ({rest['_id']}) opened by owner: ({data['username']})")
+            logging.info(f"Restaurant id: ({rest['_id']}) opened by owner: ({data['username']})")
             return 'success_open'
         elif user_data and data['type'] == 'close-rest':
             rest = restaurant.find_one_and_update({'_id': user_data['ownerOf']},
                                             {'$set': {'open': False}},
                                             return_document=ReturnDocument.AFTER)
-            print(f"Restaurant id: ({rest['_id']}) closed by owner: ({data['username']})")
+            logging.info(f"Restaurant id: ({rest['_id']}) closed by owner: ({data['username']})")
             return 'success_close'
         else:
-            print('Open or close restaurant failed, because user not found.')
+            logging.error('Open or close restaurant failed, because user not found.')
             return 'err_user_not_found'
 
     except Exception as e:
-        print(f'Open or close restaurant failed, because {e}')
+        logging.error(f'Open or close restaurant failed, because {e}')
         return False
 
 
@@ -129,26 +135,26 @@ def update_restaurant(data):
             rest = restaurant.find_one_and_update({'_id': user_data['ownerOf']},
                                                   {'$set': {'name': data['value']}},
                                                   return_document=ReturnDocument.AFTER)
-            print(f"Restaurant id: ({rest['_id']}) name updated by owner: ({data['username']})")
+            logging.info(f"Restaurant id: ({rest['_id']}) name updated by owner: ({data['username']})")
             return 'success_rest_name'
         elif user_data and data['type'] == 'edit-rest-phone':
             rest = restaurant.find_one_and_update({'_id': user_data['ownerOf']},
                                                   {'$set': {'phone': data['value']}},
                                                   return_document=ReturnDocument.AFTER)
-            print(f"Restaurant id: ({rest['_id']}) phone updated by owner: ({data['username']})")
+            logging.info(f"Restaurant id: ({rest['_id']}) phone updated by owner: ({data['username']})")
             return 'success_rest_phone'
         elif user_data and data['type'] == 'edit-rest-type':
             rest = restaurant.find_one_and_update({'_id': user_data['ownerOf']},
                                                   {'$set': {'rest_type': data['value']}},
                                                   return_document=ReturnDocument.AFTER)
-            print(f"Restaurant id: ({rest['_id']}) type updated by owner: ({data['username']})")
+            logging.info(f"Restaurant id: ({rest['_id']}) type updated by owner: ({data['username']})")
             return 'success_rest_type'
         else:
-            print('Restaurant update failed, because user not found.')
+            logging.error('Restaurant update failed, because user not found.')
             return 'err_user_not_found'
 
     except Exception as e:
-        print(f'Restaurant update failed, because {e}')
+        logging.error(f'Restaurant update failed, because {e}')
         return False
 
 
@@ -157,12 +163,121 @@ def update_user(data):
         _user = user.find_one_and_update({'username': data['username']},
                                         {'$set': {'phone': data['value']}},
                                         return_document=ReturnDocument.AFTER)
-        print(f"User id: ({_user['_id']}) phone number updated.")
+        logging.info(f"User id: ({_user['_id']}) phone number updated.")
         return True
     except Exception as e:
-        print(f'User phone number update failed, because {e}')
+        logging.error(f'User phone number update failed, because {e}')
         return False
 
 
+def add_category(data):
+    try:
+        username = data['username']
+        del data['username']
+        user_data = user.find_one({'username': username})
+        if user_data:
+            data['rest_id'] = user_data['ownerOf']
+            cate_id = category.insert(data)
+            logging.info(f"New category ({cate_id}) created in restaurant that owned by ({username}))")
+            return 'success_add_cate'
+        else:
+            logging.error('Create category failed, because user not owner of restaurant.')
+            return 'err_add_cate'
+    except Exception as e:
+        logging.error(f'Create category failed, because {e}')
+        return False
 
 
+def remove_category(data):
+    try:
+        username = data['username']
+        del data['username']
+        user_data = user.find_one({'username': username})
+        if user_data:
+            result = category.delete_one({"rest_id": user_data['ownerOf'], "category_id": data['category_id']})
+            if result.deleted_count > 0:
+                logging.info(f"Category removed in restaurant that owned by ({username}))")
+                return 'success_remove_cate'
+            else:
+                logging.error("Remove category failed, because category not found.")
+                return 'err_remove_cate'
+
+        else:
+            logging.error('Remove category failed, because user not owner of restaurant.')
+            return 'err_remove_cate'
+    except Exception as e:
+        logging.error(f'Remove category failed, because {e}')
+        return False
+
+
+def update_category(data):
+    try:
+        username = data['username']
+        del data['username']
+        user_data = user.find_one({'username': username})
+        if user_data:
+            result = category.find_one_and_update({"rest_id": user_data['ownerOf'], "category_id": data['category_id']},
+                                        {'$set': {data['field']: data['value']}},
+                                        return_document=ReturnDocument.AFTER)
+            logging.info(f"Category ({result['category_id']}) updated in restaurant that owned by ({username}))")
+            return 'success_edit_cate'
+    except Exception as e:
+        logging.error(f'Update category failed, because {e}')
+        return False
+
+
+def add_menu(data):
+    try:
+        username = data['username']
+        del data['username']
+        user_data = user.find_one({'username': username})
+        if user_data:
+            data['status'] = False
+            data['rest_id'] = user_data['ownerOf']
+            menu_id = menu.insert(data)
+            logging.info(f"New menu ({menu_id}) created in restaurant that owned by ({username}))")
+            return 'success_add_menu'
+        else:
+            logging.error('Create menu failed, because user not owner of restaurant.')
+            return 'err_add_menu'
+    except Exception as e:
+        logging.error(f'Create menu failed, because {e}')
+        return False
+
+
+def remove_menu(data):
+    try:
+        username = data['username']
+        del data['username']
+        user_data = user.find_one({'username': username})
+        if user_data:
+            result = menu.delete_one({"rest_id": user_data['ownerOf'], "name": data['name']})
+            if result.deleted_count > 0:
+                logging.info(f"{result.deleted_count} Menu removed in restaurant that owned by ({username}))")
+                return 'success_remove_menu'
+            else:
+                logging.error("Remove menu failed, because category not found.")
+                return 'err_remove_menu'
+
+        else:
+            logging.error('Remove menu failed, because user not owner of restaurant.')
+            return 'err_remove_menu'
+    except Exception as e:
+        logging.error(f'Remove menu failed, because {e}')
+        return False
+
+
+def update_menu(data):
+    try:
+        username = data['username']
+        del data['username']
+        user_data = user.find_one({'username': username})
+        if user_data:
+            result = menu.find_one_and_update({"rest_id": user_data['ownerOf'], "name": data['name']},
+                                        {'$set': {data['field']: data['value']}},
+                                        return_document=ReturnDocument.AFTER)
+            logging.info(f"Menu ({result['category_id']}) updated in restaurant that owned by ({username}))")
+            return 'success_edit_menu'
+    except Exception as e:
+        logging.error(f'Update menu failed, because {e}')
+        return False

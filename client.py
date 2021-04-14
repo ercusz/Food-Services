@@ -4,8 +4,10 @@ import sys
 import threading
 import pickle
 import database as db
+import getpass
 from ansimarkup import ansiprint as print
 
+inf = True
 isLogin = False
 username = ""
 error = "\n<bold,,red><fg #FFFFFF>\U0000274CERROR</fg #FFFFFF></bold,,red>"
@@ -14,8 +16,10 @@ connect = "\n<bold,,green><fg #000000>\U00002705CONNECTED</fg #000000></bold,,gr
 disconnect = "\n<bold,,red><fg #000000>\U0000274CDISCONNECTED</fg #000000></bold,,red>"
 tips = "\n<bold><fg #000000><bg #F4D03F>\U0001F4A1TIPS</bg #F4D03F></fg #000000></bold>"
 
+
 def handle_messages(connection: socket.socket):
-    #Receive messages sent by the server and display them to user
+    # Receive messages sent by the server and display them to user
+    global inf
     global isLogin
     global username
     global error
@@ -31,7 +35,7 @@ def handle_messages(connection: socket.socket):
             # If not, it will try to decode message in order to show to user.
             if msg:
                 decode_msg = pickle.loads(msg)
-                #print(decode_msg)
+                # print(decode_msg)
 
                 if type(decode_msg) == dict:
                     if decode_msg['type'] == 'err':
@@ -48,11 +52,15 @@ def handle_messages(connection: socket.socket):
                         print()
                         if decode_msg['msg'] == 'Login Successfully.':
                             os.system('cls' if os.name == 'nt' else 'clear')
-                            print('<bold><fg #ffffff><bg #000000>'+'\n\U0001F44BHi, '+username.upper()+'! are you hungry?\n'+'</bg #000000></fg #ffffff></bold>')
-                            print(tips + " " + "Type `/exit` to terminate program.")
-                            print(tips + " " + "Type `/help` to see all commands.")
+                            print(
+                                '<bold><fg #ffffff><bg #000000>' + '\n\U0001F44BHi, ' + username.upper() + '! are you hungry?\n' + '</bg #000000></fg #ffffff></bold>')
+                            print(
+                                tips + " " + "Type `<b><fg #1BF4FF>" + "/exit" + "</fg #1BF4FF></b>` to terminate program.")
+                            print(
+                                tips + " " + "Type `<b><fg #1BF4FF>" + "/help" + "</fg #1BF4FF></b>` to see all commands.")
                             print()
                             isLogin = True
+                            os.system("title " + "(CLIENT) " + username.upper())
 
                 # if isinstance(pickle.loads(msg), list):
                 #     if 'menuId' in pickle.loads(msg)[0].keys():
@@ -62,12 +70,14 @@ def handle_messages(connection: socket.socket):
 
             else:
                 connection.close()
+                inf = False
                 break
 
         except Exception as e:
             print(f'Error handling message from server: {e}')
-            #print(disconnect+' by server.')
+            print(disconnect)
             connection.close()
+            inf = False
             break
 
 
@@ -75,6 +85,7 @@ def main() -> None:
     customPort = int(input('Input port number(4 digits): '))
     host = "127.0.0.1"
     port = customPort
+    global inf
     global isLogin
     global connect
     global disconnect
@@ -92,9 +103,11 @@ def main() -> None:
         else:
             Register(socket_instance)
 
-        while True:
+        while inf:
             if isLogin:
-                msg = input(username.upper() + '> ')
+                print(f"\U0001F468<fg #FFB755>{username.upper()}</fg #FFB755>> ", end='')
+                msg = input()
+                # msg = input(username.upper() + '> ')
                 if msg.lower() == '/exit':
                     break
                 elif msg.lower() == '/help':
@@ -110,16 +123,14 @@ def main() -> None:
                 else:
                     print(f'<red>Unknown the `{msg}` command.</red>')
 
-            #socket_instance.send(pickle.dumps(msg))
-
-
+            # socket_instance.send(pickle.dumps(msg))
         socket_instance.close(socket_instance)
         sys.exit()
-        print(disconnect)
+
 
     except:
-        #print('Error, Can\'t connect to server!')
-        print(disconnect)
+        # print('Error, Can\'t connect to server!')
+        # print(disconnect)
         socket_instance.close()
         sys.exit()
 
@@ -137,8 +148,8 @@ def Register(socket_instance):
         account['restaurant'] = False
 
     account['username'] = input('username: ')
-    account['password'] = input('password: ')
-    confirm_password = input('confirm password: ')
+    account['password'] = getpass.getpass('password: ')
+    confirm_password = getpass.getpass('confirm password: ')
     account['phone'] = input('phone: ')
     if account['password'] == confirm_password:
         socket_instance.send(pickle.dumps(account))
@@ -153,7 +164,7 @@ def Login(socket_instance):
     account = {}
     account['type'] = 'login'
     account['username'] = input('username: ')
-    account['password'] = input('password: ')
+    account['password'] = getpass.getpass('password: ')
     username = account['username']
     socket_instance.send(pickle.dumps(account))
 
@@ -175,8 +186,12 @@ def get_commands():
     cmd = [
         {'command': '/help', 'desc': 'see all commands.'},
         {'command': '/exit', 'desc': 'disconnect from server & exit program'},
-        {'command': '/rest', 'desc': 'the commands for restaurant.\n\tusing `<b><fg #1BF4FF>/help rest</fg #1BF4FF></b>` to see more restaurant commands.'},
-        {'command': '/user', 'desc': 'the commands for user.\n\tusing `<b><fg #1BF4FF>/help user</fg #1BF4FF></b>` to see more user commands.'}
+        {'command': '/rest',
+         'desc': 'the commands for restaurant.\n\tusing `<b><fg #1BF4FF>/help rest</fg #1BF4FF></b>` to see more '
+                 'restaurant commands.'},
+        {'command': '/user',
+         'desc': 'the commands for user.\n\tusing `<b><fg #1BF4FF>/help user</fg #1BF4FF></b>` to see more user '
+                 'commands.'}
     ]
     for c in cmd:
         print('<b><fg #1BF4FF>' + c['command'] + '</fg #1BF4FF></b>' + "\t" + c['desc'])
@@ -184,10 +199,21 @@ def get_commands():
 
 def get_rest_commands():
     cmd = [
+        {'command': '/rest info', 'desc': 'view restaurant information.'},
         {'command': '/rest setup', 'desc': 'add restaurant into system. (for first time only)'},
         {'command': '/rest edit <name/phone/rest_type> <value>', 'desc': 'edit restaurant information.'},
         {'command': '/rest open', 'desc': 'open restaurant'},
-        {'command': '/rest close', 'desc': 'close restaurant.'}
+        {'command': '/rest close', 'desc': 'close restaurant.'},
+        {'command': '/rest category', 'desc': 'view all categories in your restaurant.'},
+        {'command': '/rest category add <category_id> <name>',
+         'desc': 'add new category of menu into your restaurant.'},
+        {'command': '/rest category remove <category_id>', 'desc': 'remove category of menu into your restaurant.'},
+        {'command': '/rest category edit <category_id> as <category_id/name> <value>',
+         'desc': 'edit category information.'},
+        {'command': '/rest menu', 'desc': 'view all menus in your restaurant.'},
+        {'command': '/rest menu add <name> <price> <category_id>', 'desc': 'add new menu into your restaurant.'},
+        {'command': '/rest menu remove <name>', 'desc': 'remove menu into your restaurant.'},
+        {'command': '/rest menu edit <name> as <name/price/category/status> <value>', 'desc': 'edit menu information.'}
     ]
     for c in cmd:
         print('<b><fg #1BF4FF>' + c['command'] + '</fg #1BF4FF></b>' + "\t" + c['desc'])
@@ -218,6 +244,8 @@ def rest_command(cmd: str, connection: socket.socket):
     global username
     if cmd.lower() == '/rest setup':
         AddRestaurantData(connection)
+    elif cmd.lower() == '/rest info':
+        print('show restaurant info.')
     elif cmd[:11].lower() == '/rest edit ':
         data = {}
         data['username'] = username
@@ -240,6 +268,56 @@ def rest_command(cmd: str, connection: socket.socket):
         rest_open(connection)
     elif cmd.lower() == '/rest close':
         rest_close(connection)
+    elif cmd.lower() == '/rest category':
+        print('show restaurant category.')
+    elif cmd.lower()[:15] == '/rest category ':
+        data = {}
+        data['username'] = username
+        _cmd = cmd.split()
+        if _cmd[2].lower() == 'add':
+            data['type'] = 'add-category'
+            data['category_id'] = _cmd[3]
+            data['name'] = _cmd[4]
+            connection.send(pickle.dumps(data))
+        elif _cmd[2].lower() == 'remove':
+            data['type'] = 'remove-category'
+            data['category_id'] = _cmd[3]
+            connection.send(pickle.dumps(data))
+        elif _cmd[2].lower() == 'edit':
+            data['type'] = 'edit-category'
+            data['category_id'] = _cmd[3]
+            data['field'] = _cmd[5]
+            data['value'] = _cmd[6]
+            connection.send(pickle.dumps(data))
+        else:
+            print(f'<red>Unknown the `{_cmd[2]}` field.</red>')
+    elif cmd.lower() == '/rest menu':
+        print('show restaurant menu.')
+    elif cmd.lower()[:11] == '/rest menu ':
+        data = {}
+        data['username'] = username
+        _cmd = cmd.split()
+        if _cmd[2].lower() == 'add':
+            data['type'] = 'add-menu'
+            data['name'] = _cmd[3]
+            data['price'] = int(_cmd[4])
+            data['category_id'] = _cmd[5]
+            connection.send(pickle.dumps(data))
+        elif _cmd[2].lower() == 'remove':
+            data['type'] = 'remove-menu'
+            data['name'] = _cmd[3]
+            connection.send(pickle.dumps(data))
+        elif _cmd[2].lower() == 'edit':
+            data['type'] = 'edit-menu'
+            data['name'] = _cmd[3]
+            data['field'] = _cmd[5]
+            if data['field'] == 'price':
+                data['value'] = int(_cmd[6])
+            else:
+                data['value'] = _cmd[6]
+            connection.send(pickle.dumps(data))
+        else:
+            print(f'<red>Unknown the `{_cmd[2]}` field.</red>')
     else:
         print(f'<red>Unknown the `{cmd}` command.</red>')
 
