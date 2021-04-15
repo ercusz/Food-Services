@@ -6,6 +6,8 @@ import pickle
 import database as db
 import getpass
 from ansimarkup import ansiprint as print
+from tabulate import tabulate
+import pandas as pd
 
 inf = True
 isLogin = False
@@ -62,11 +64,28 @@ def handle_messages(connection: socket.socket):
                             isLogin = True
                             os.system("title " + "(CLIENT) " + username.upper())
 
-                # if isinstance(pickle.loads(msg), list):
-                #     if 'menuId' in pickle.loads(msg)[0].keys():
-                #         for menu in pickle.loads(msg):
-                #             for title, value in menu.items():
-                #                 print(f'{title}: {value}')
+                    elif decode_msg['type'] == 'rest-info':
+                        del decode_msg['type']
+                        del decode_msg['_id']
+                        print('Restaurant Information')
+                        header = ['RESTAURANT NAME', 'RESTAURANT TYPE', 'RESTAURANT PHONE', 'RATING', 'OPEN']
+                        data = [decode_msg.values()]
+                        print(tabulate(data, headers=header, stralign='center', numalign='center', tablefmt='fancy_grid'))
+                        print()
+
+                if type(decode_msg) == list:
+                    if decode_msg[0] == 'rest-category':
+                        decode_msg.pop(0)
+                        print('Restaurant Category')
+                        header = ['CATEGORY ID', 'CATEGORY NAME']
+                        print(tabulate(decode_msg, headers=header, stralign='center', numalign='center', tablefmt='fancy_grid'))
+                        print()
+                    elif decode_msg[0] == 'rest-menu':
+                        decode_msg.pop(0)
+                        print('Restaurant Menu')
+                        header = ['MENU NAME', 'PRICE', 'CATEGORY ID', 'STATUS']
+                        print(tabulate(decode_msg, headers=header, stralign='center', numalign='center', tablefmt='fancy_grid'))
+                        print()
 
             else:
                 connection.close()
@@ -213,7 +232,7 @@ def get_rest_commands():
         {'command': '/rest menu', 'desc': 'view all menus in your restaurant.'},
         {'command': '/rest menu add <name> <price> <category_id>', 'desc': 'add new menu into your restaurant.'},
         {'command': '/rest menu remove <name>', 'desc': 'remove menu into your restaurant.'},
-        {'command': '/rest menu edit <name> as <name/price/category/status> <value>', 'desc': 'edit menu information.'}
+        {'command': '/rest menu edit <name/all> as <name/price/category/status> <value>', 'desc': 'edit menu information.'}
     ]
     for c in cmd:
         print('<b><fg #1BF4FF>' + c['command'] + '</fg #1BF4FF></b>' + "\t" + c['desc'])
@@ -245,7 +264,10 @@ def rest_command(cmd: str, connection: socket.socket):
     if cmd.lower() == '/rest setup':
         AddRestaurantData(connection)
     elif cmd.lower() == '/rest info':
-        print('show restaurant info.')
+        data = {}
+        data['username'] = username
+        data['type'] = 'rest-info'
+        connection.send(pickle.dumps(data))
     elif cmd[:11].lower() == '/rest edit ':
         data = {}
         data['username'] = username
@@ -269,7 +291,10 @@ def rest_command(cmd: str, connection: socket.socket):
     elif cmd.lower() == '/rest close':
         rest_close(connection)
     elif cmd.lower() == '/rest category':
-        print('show restaurant category.')
+        data = {}
+        data['username'] = username
+        data['type'] = 'rest-category'
+        connection.send(pickle.dumps(data))
     elif cmd.lower()[:15] == '/rest category ':
         data = {}
         data['username'] = username
@@ -292,7 +317,10 @@ def rest_command(cmd: str, connection: socket.socket):
         else:
             print(f'<red>Unknown the `{_cmd[2]}` field.</red>')
     elif cmd.lower() == '/rest menu':
-        print('show restaurant menu.')
+        data = {}
+        data['username'] = username
+        data['type'] = 'rest-menu'
+        connection.send(pickle.dumps(data))
     elif cmd.lower()[:11] == '/rest menu ':
         data = {}
         data['username'] = username

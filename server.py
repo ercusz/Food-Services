@@ -194,6 +194,45 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                             res = packed_respond('err', 'Your account type is not restaurant.')
                             connection.send(pickle.dumps(res))
 
+                    elif msg_decode['type'] == 'rest-info':
+                        del msg_decode['type']
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.rest_info(msg_decode)
+                            if result == 'err_rest_info':
+                                res = packed_respond('err', 'Get restaurant info failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result['type'] == 'rest-info':
+                                connection.send(pickle.dumps(result))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'rest-category':
+                        del msg_decode['type']
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.rest_category(msg_decode)
+                            if result == 'err_rest_category':
+                                res = packed_respond('err', 'Get restaurant category failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result[0] == 'rest-category':
+                                connection.send(pickle.dumps(result))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'rest-menu':
+                        del msg_decode['type']
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.rest_menu(msg_decode)
+                            if result == 'err_rest_menu':
+                                res = packed_respond('err', 'Get restaurant category failed.')
+                                connection.send(pickle.dumps(res))
+                            elif result[0] == 'rest-menu':
+                                connection.send(pickle.dumps(result))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
 
                 #if pickle.loads(msg) != "":
                     #Log message sent by user

@@ -273,11 +273,81 @@ def update_menu(data):
         del data['username']
         user_data = user.find_one({'username': username})
         if user_data:
-            result = menu.find_one_and_update({"rest_id": user_data['ownerOf'], "name": data['name']},
-                                        {'$set': {data['field']: data['value']}},
-                                        return_document=ReturnDocument.AFTER)
-            logging.info(f"Menu ({result['category_id']}) updated in restaurant that owned by ({username}))")
-            return 'success_edit_menu'
+            if data['name'] == 'all':
+                result = menu.update_many({"rest_id": user_data['ownerOf']}, {'$set': {data['field']: data['value']}})
+
+                logging.info(f"{result.modified_count} menu(s) updated in restaurant that owned by ({username}))")
+                return 'success_edit_menu'
+            else:
+                result = menu.find_one_and_update({"rest_id": user_data['ownerOf'], "name": data['name']},
+                                            {'$set': {data['field']: data['value']}},
+                                            return_document=ReturnDocument.AFTER)
+                logging.info(f"Menu ({result['category_id']}) updated in restaurant that owned by ({username}))")
+                return 'success_edit_menu'
+        else:
+            logging.error('Update menu failed, because user not owner of restaurant.')
+            return 'err_edit_menu'
     except Exception as e:
         logging.error(f'Update menu failed, because {e}')
+        return False
+
+
+def rest_info(data):
+    try:
+        username = data['username']
+        del data['username']
+        user_data = user.find_one({'username': username})
+        if user_data:
+            result = restaurant.find_one(user_data['ownerOf'])
+            result['type'] = 'rest-info'
+            rest_type = restaurant_type.find_one({'type_id': result['rest_type']})
+            result['rest_type'] = "(" + result['rest_type'] + ") " + rest_type['name']
+            result['rating'] = "★ " + "{:.1f}".format(result['rating'])
+            logging.info(f"Send restaurant ({result['_id']}) info to user ({username})")
+            return result
+        else:
+            logging.error('Get restaurant info failed, because user not owner of restaurant.')
+            return 'err_rest_info'
+    except Exception as e:
+        logging.error(f'Get restaurant info failed, because {e}')
+        return False
+
+
+def rest_category(data):
+    try:
+        username = data['username']
+        del data['username']
+        user_data = user.find_one({'username': username})
+        if user_data:
+            data = ['rest-category']
+            for x in category.find({'rest_id': user_data['ownerOf']}):
+                data.append(list([x['category_id'], x['name']]))
+            logging.info(f"Send restaurant ({user_data['ownerOf']}) category to user ({username})")
+            return data
+        else:
+            logging.error('Get restaurant category failed, because user not owner of restaurant.')
+            return 'err_rest_category'
+    except Exception as e:
+        logging.error(f'Get restaurant category failed, because {e}')
+        return False
+
+
+def rest_menu(data):
+    try:
+        username = data['username']
+        del data['username']
+        user_data = user.find_one({'username': username})
+        if user_data:
+            data = ['rest-menu']
+            for x in menu.find({'rest_id': user_data['ownerOf']}):
+                del x['_id']
+                del x['rest_id']
+                data.append(list(x.values()))
+            logging.info(f"Send restaurant ({user_data['ownerOf']}) menu to user ({username})")
+            return data
+        else:
+            logging.error('Get restaurant menu failed, because user not owner of restaurant.')
+            return 'err_rest_menu'
+    except Exception as e:
+        logging.error(f'Get restaurant menu failed, because {e}')
         return False
