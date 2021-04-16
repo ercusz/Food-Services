@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from PyInquirer import Separator
 from datetime import datetime, timezone
 import pytz
 import pymongo
@@ -350,4 +351,54 @@ def rest_menu(data):
             return 'err_rest_menu'
     except Exception as e:
         logging.error(f'Get restaurant menu failed, because {e}')
+        return False
+
+
+def get_all_restaurants():
+    try:
+        result = restaurant.find().sort([('open', pymongo.DESCENDING)])
+        data = ['all-rest', Separator('= Restaurant List =')]
+        for x in result:
+            if not x['open']:
+                x['disabled'] = 'closed'
+            data.append(x)
+        return data
+    except Exception as e:
+        logging.error(f'Get restaurant failed, because {e}')
+        return False
+
+
+def get_restaurants_by_condition(data):
+    try:
+        result = []
+        if data['type'] == 'get-rest-by-name':
+            del data['type']
+            result = restaurant.find({'name': {'$regex': data['value'], '$options': 'i'}}).sort([('open', pymongo.DESCENDING)])
+
+        elif data['type'] == 'get-rest-by-menu':
+            del data['type']
+            result_menu = menu.find({'name': {'$regex': data['value'], '$options': 'i'}})
+            list_result = []
+            for x in result_menu:
+                list_result.append(x['rest_id'])
+            result = restaurant.find({'_id': {'$in': list_result}}).sort([('open', pymongo.DESCENDING)])
+
+        elif data['type'] == 'get-rest-by-fav':
+            del data['type']
+            result_user = user.find_one({'username': data['username']})
+            list_result = result_user['favRest']
+            result = restaurant.find({'_id': {'$in': list_result}}).sort([('open', pymongo.DESCENDING)])
+
+        data = ['all-rest', Separator('= Restaurant List ='), {'name': 'Select to exit restaurant or Press (ctrl+c)'}]
+        for x in result:
+            if not x['open']:
+                x['disabled'] = 'closed'
+            data.append(x)
+
+        if len(data) <= 3:
+            return []
+        else:
+            return data
+    except Exception as e:
+        logging.error(f'Get restaurant failed, because {e}')
         return False

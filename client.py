@@ -1,14 +1,30 @@
+from __future__ import print_function, unicode_literals
+
+import time
+
+from PyInquirer import style_from_dict, Token, prompt, Separator, Validator, ValidationError
+from pprint import pprint
+import regex
 import os
 import socket
 import sys
 import threading
 import pickle
 import database as db
-import getpass
 from ansimarkup import ansiprint as print
 from tabulate import tabulate
-import pandas as pd
 
+style = style_from_dict({
+    Token.Separator: '#6C6C6C',
+    Token.QuestionMark: '#FF9D00 bold',
+    Token.Selected: '#5F819D',
+    Token.Pointer: '#FF9D00 bold',
+    Token.Instruction: '',  # default
+    Token.Answer: '#f44336 bold',
+    Token.Question: '',
+})
+
+all_rest = []
 inf = True
 isLogin = False
 username = ""
@@ -17,6 +33,73 @@ success = "\n<bold,,green><fg #000000>\U00002705SUCCESS</fg #000000></bold,,gree
 connect = "\n<bold,,green><fg #000000>\U00002705CONNECTED</fg #000000></bold,,green>"
 disconnect = "\n<bold,,red><fg #000000>\U0000274CDISCONNECTED</fg #000000></bold,,red>"
 tips = "\n<bold><fg #000000><bg #F4D03F>\U0001F4A1TIPS</bg #F4D03F></fg #000000></bold>"
+
+
+class PhoneNumberValidator(Validator):
+    def validate(self, document):
+        ok = regex.match(
+            '^([01]{1})?[-.\s]?\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})\s?((?:#|ext\.?\s?|x\.?\s?){1}(?:\d+)?)?$',
+            document.text)
+        if not ok:
+            raise ValidationError(
+                message='Please enter a valid phone number',
+                cursor_position=len(document.text))  # Move cursor to end
+
+
+class NumberValidator(Validator):
+    def validate(self, document):
+        try:
+            int(document.text)
+        except ValueError:
+            raise ValidationError(
+                message='Please enter a number',
+                cursor_position=len(document.text))  # Move cursor to end
+
+
+questions = [
+    {
+        'type': 'input',
+        'qmark': '[ ? ]',
+        'message': 'Input port number(4 digits): ',
+        'name': 'port',
+        'validate': NumberValidator,
+        'filter': lambda val: int(val)
+    },
+    {
+        'type': 'confirm',
+        'message': 'Do you have an account? ',
+        'name': 'acc_choice',
+        'default': False
+    },
+    {
+        'type': 'list',
+        'name': 'acc_type',
+        'message': 'Please select your account type',
+        'choices': ['Personal', 'Restaurant'],
+        'filter': lambda val: val.lower()
+    },
+    {
+        'type': 'input',
+        'message': 'Enter your username',
+        'name': 'username'
+    },
+    {
+        'type': 'password',
+        'message': 'Enter your password',
+        'name': 'password'
+    },
+    {
+        'type': 'password',
+        'message': 'Confirm your password',
+        'name': 'confirm_password'
+    },
+    {
+        'type': 'input',
+        'name': 'phone',
+        'message': 'Enter your phone number',
+        'validate': PhoneNumberValidator
+    },
+]
 
 
 def handle_messages(connection: socket.socket):
@@ -28,6 +111,7 @@ def handle_messages(connection: socket.socket):
     global success
     global disconnect
     global tips
+    global all_rest
     while True:
         try:
             msg = connection.recv(1024)
@@ -46,13 +130,16 @@ def handle_messages(connection: socket.socket):
                         print()
                         if decode_msg['msg'] == 'Login Fail.':
                             isLogin = False
-                            connection.close()
+                            Login(connection)
+                        elif decode_msg['msg'] == 'Get restaurant failed.':
+                            all_rest.clear()
+                            all_rest.append('err')
 
                     elif decode_msg['type'] == 'success':
                         send_msg = decode_msg['msg']
                         print(success + " " + send_msg)
                         print()
-                        if decode_msg['msg'] == 'Login Successfully.':
+                        if decode_msg['msg'] == 'Login Successfully.' or decode_msg['msg'] == 'Register Successfully.':
                             os.system('cls' if os.name == 'nt' else 'clear')
                             print(
                                 '<bold><fg #ffffff><bg #000000>' + '\n\U0001F44BHi, ' + username.upper() + '! are you hungry?\n' + '</bg #000000></fg #ffffff></bold>')
@@ -70,7 +157,8 @@ def handle_messages(connection: socket.socket):
                         print('Restaurant Information')
                         header = ['RESTAURANT NAME', 'RESTAURANT TYPE', 'RESTAURANT PHONE', 'RATING', 'OPEN']
                         data = [decode_msg.values()]
-                        print(tabulate(data, headers=header, stralign='center', numalign='center', tablefmt='fancy_grid'))
+                        print(
+                            tabulate(data, headers=header, stralign='center', numalign='center', tablefmt='fancy_grid'))
                         print()
 
                 if type(decode_msg) == list:
@@ -78,14 +166,19 @@ def handle_messages(connection: socket.socket):
                         decode_msg.pop(0)
                         print('Restaurant Category')
                         header = ['CATEGORY ID', 'CATEGORY NAME']
-                        print(tabulate(decode_msg, headers=header, stralign='center', numalign='center', tablefmt='fancy_grid'))
+                        print(tabulate(decode_msg, headers=header, stralign='center', numalign='center',
+                                       tablefmt='fancy_grid'))
                         print()
                     elif decode_msg[0] == 'rest-menu':
                         decode_msg.pop(0)
                         print('Restaurant Menu')
                         header = ['MENU NAME', 'PRICE', 'CATEGORY ID', 'STATUS']
-                        print(tabulate(decode_msg, headers=header, stralign='center', numalign='center', tablefmt='fancy_grid'))
+                        print(tabulate(decode_msg, headers=header, stralign='center', numalign='center',
+                                       tablefmt='fancy_grid'))
                         print()
+                    elif decode_msg[0] == 'all-rest':
+                        decode_msg.pop(0)
+                        all_rest = decode_msg
 
             else:
                 connection.close()
@@ -101,14 +194,15 @@ def handle_messages(connection: socket.socket):
 
 
 def main() -> None:
-    customPort = int(input('Input port number(4 digits): '))
+    answer = prompt(questions[0], style=style)
     host = "127.0.0.1"
-    port = customPort
+    port = answer['port']
     global inf
     global isLogin
     global connect
     global disconnect
     global username
+    global all_rest
     try:
         socket_instance = socket.socket()
         socket_instance.connect((host, port))
@@ -116,8 +210,8 @@ def main() -> None:
         print(connect)
         print("Client start with " + host + ":" + str(port))
 
-        chk = input("Do you have an account? (y/N): ")
-        if chk.lower() == 'y':
+        chk = prompt(questions[1], style=style)['acc_choice']
+        if chk:
             Login(socket_instance)
         else:
             Register(socket_instance)
@@ -139,6 +233,38 @@ def main() -> None:
                     rest_command(msg, socket_instance)
                 elif msg.lower()[:6] == '/user ':
                     user_command(msg, socket_instance)
+                elif msg.lower()[:18] == '/select rest from ':
+                    all_rest = []
+                    cmd = msg.split()
+                    if cmd[3] == 'all':
+                        data = {'type': 'all-rest'}
+                    elif cmd[3] == 'fav':
+                        data = {'type': 'get-rest-by-fav', 'username': username}
+                    elif cmd[3] == 'name':
+                        data = {'type': 'get-rest-by-name', 'value': cmd[4]}
+                    elif cmd[3] == 'menu':
+                        data = {'type': 'get-rest-by-menu', 'value': cmd[4]}
+                    socket_instance.send(pickle.dumps(data))
+                    while True:
+                        if all_rest and len(all_rest) > 2:
+                            print('ctrl+c to exit selection.')
+                            rest_list = [
+                                {
+                                    'type': 'list',
+                                    'message': 'Select restaurant',
+                                    'name': 'selected_rest',
+                                    'choices': all_rest
+                                }
+                            ]
+                            answers = prompt(rest_list, style=style)
+                            pprint(answers)
+                            break
+                        else:
+                            if all_rest and all_rest[0] == 'err':
+                                break
+
+                elif msg.lower() == '':
+                    continue
                 else:
                     print(f'<red>Unknown the `{msg}` command.</red>')
 
@@ -148,29 +274,30 @@ def main() -> None:
 
 
     except:
-        # print('Error, Can\'t connect to server!')
+        # print(f'Error, Can\'t connect to server!: {e}')
         # print(disconnect)
         socket_instance.close()
         sys.exit()
 
 
 def Register(socket_instance):
+    global username
+    global questions
+    global style
     print('Register')
     account = {}
     account['type'] = 'reg'
-    print('Register account for personal/restaurant?')
-    print('Enter (1) for personal | (2) for restaurant')
-    choice = int(input('>> '))
-    if choice == 2:
+    print('Registration')
+    answers = prompt([questions[2], questions[3], questions[4], questions[5], questions[6]], style=style)
+    if answers['acc_type'] == 'restaurant':
         account['restaurant'] = True
     else:
         account['restaurant'] = False
-
-    account['username'] = input('username: ')
-    account['password'] = getpass.getpass('password: ')
-    confirm_password = getpass.getpass('confirm password: ')
-    account['phone'] = input('phone: ')
-    if account['password'] == confirm_password:
+    account['username'] = answers['username']
+    account['phone'] = answers['phone']
+    if answers['password'] == answers['confirm_password']:
+        account['password'] = answers['password']
+        username = answers['username']
         socket_instance.send(pickle.dumps(account))
     else:
         print('Password doesn\'t match')
@@ -179,11 +306,13 @@ def Register(socket_instance):
 
 def Login(socket_instance):
     global username
+    global style
     print('Login')
     account = {}
     account['type'] = 'login'
-    account['username'] = input('username: ')
-    account['password'] = getpass.getpass('password: ')
+    answers = prompt([questions[3], questions[4]], style=style)
+    account['username'] = answers['username']
+    account['password'] = answers['password']
     username = account['username']
     socket_instance.send(pickle.dumps(account))
 
@@ -206,14 +335,24 @@ def get_commands():
         {'command': '/help', 'desc': 'see all commands.'},
         {'command': '/exit', 'desc': 'disconnect from server & exit program'},
         {'command': '/rest',
-         'desc': 'the commands for restaurant.\n\tusing `<b><fg #1BF4FF>/help rest</fg #1BF4FF></b>` to see more '
+         'desc': 'the commands for restaurant.\nusing `/help rest` to see more '
                  'restaurant commands.'},
         {'command': '/user',
-         'desc': 'the commands for user.\n\tusing `<b><fg #1BF4FF>/help user</fg #1BF4FF></b>` to see more user '
-                 'commands.'}
+         'desc': 'the commands for user.\nusing `/help user` to see more user '
+                 'commands.'},
+        {'command': '/select rest from <all/fav/name/menu> <value>',
+         'desc': 'the commands to select restaurant before ordering.\n'
+                 'using `<all>` to find all restaurants.\n'
+                 'using `<fav>` to show your favourite restaurants.\n'
+                 'using `<name> or <menu>` to find restaurants by keywords.\n'
+         },
+        {'command': '/order',
+         'desc': 'the commands for ordering.\nusing `/help order` to see more order '
+                 'commands.'},
     ]
-    for c in cmd:
-        print('<b><fg #1BF4FF>' + c['command'] + '</fg #1BF4FF></b>' + "\t" + c['desc'])
+    header = ['COMMAND', 'DESCRIPTION']
+    rows = [x.values() for x in cmd]
+    print(tabulate(rows, headers=header, tablefmt='fancy_grid'))
 
 
 def get_rest_commands():
@@ -227,23 +366,26 @@ def get_rest_commands():
         {'command': '/rest category add <category_id> <name>',
          'desc': 'add new category of menu into your restaurant.'},
         {'command': '/rest category remove <category_id>', 'desc': 'remove category of menu into your restaurant.'},
-        {'command': '/rest category edit <category_id> as <category_id/name> <value>',
+        {'command': '/rest category edit <category_id>\n as <category_id/name> <value>',
          'desc': 'edit category information.'},
         {'command': '/rest menu', 'desc': 'view all menus in your restaurant.'},
         {'command': '/rest menu add <name> <price> <category_id>', 'desc': 'add new menu into your restaurant.'},
         {'command': '/rest menu remove <name>', 'desc': 'remove menu into your restaurant.'},
-        {'command': '/rest menu edit <name/all> as <name/price/category/status> <value>', 'desc': 'edit menu information.'}
+        {'command': '/rest menu edit <name/all>\n as <name/price/category/status> <value>', 'desc': 'edit menu '
+                                                                                                    'information.'}
     ]
-    for c in cmd:
-        print('<b><fg #1BF4FF>' + c['command'] + '</fg #1BF4FF></b>' + "\t" + c['desc'])
+    header = ['COMMAND', 'DESCRIPTION']
+    rows = [x.values() for x in cmd]
+    print(tabulate(rows, headers=header, tablefmt='fancy_grid'))
 
 
 def get_user_commands():
     cmd = [
         {'command': '/user edit phone <value>', 'desc': 'edit user phone number.'},
     ]
-    for c in cmd:
-        print('<b><fg #1BF4FF>' + c['command'] + '</fg #1BF4FF></b>' + "\t" + c['desc'])
+    header = ['COMMAND', 'DESCRIPTION']
+    rows = [x.values() for x in cmd]
+    print(tabulate(rows, headers=header, tablefmt='fancy_grid'))
 
 
 def user_command(cmd: str, connection: socket.socket):

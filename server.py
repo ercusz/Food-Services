@@ -233,6 +233,23 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                             res = packed_respond('err', 'Your account type is not restaurant.')
                             connection.send(pickle.dumps(res))
 
+                    elif msg_decode['type'] == 'all-rest':
+                        del msg_decode['type']
+                        result = db.get_all_restaurants()
+                        if not result:
+                            res = packed_respond('err', 'Get restaurant failed.')
+                            connection.send(pickle.dumps(res))
+                        elif result[0] == 'all-rest':
+                            connection.send(pickle.dumps(result))
+
+                    elif msg_decode['type'] == 'get-rest-by-name' or msg_decode['type'] == 'get-rest-by-menu' or msg_decode['type'] == 'get-rest-by-fav':
+                        result = db.get_restaurants_by_condition(msg_decode)
+                        if not result:
+                            res = packed_respond('err', 'Get restaurant failed.')
+                            connection.send(pickle.dumps(res))
+                        elif result[0] == 'all-rest':
+                            connection.send(pickle.dumps(result))
+
 
                 #if pickle.loads(msg) != "":
                     #Log message sent by user
