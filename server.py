@@ -250,6 +250,15 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                         elif result[0] == 'all-rest':
                             connection.send(pickle.dumps(result))
 
+                    elif msg_decode['type'] == 'remove-fav-rest' or msg_decode['type'] == 'add-fav-rest':
+                        result = db.update_user_favrest(msg_decode)
+                        if not result:
+                            res = packed_respond('err', 'Update favourite restaurant failed.')
+                            connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('success', 'Your favourite restaurant updated.')
+                            connection.send(pickle.dumps(res))
+
 
                 #if pickle.loads(msg) != "":
                     #Log message sent by user

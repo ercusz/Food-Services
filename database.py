@@ -171,6 +171,22 @@ def update_user(data):
         return False
 
 
+def update_user_favrest(data):
+    try:
+        rest_data = restaurant.find_one({'name': data['value']})
+        if data['type'] == 'remove-fav-rest':
+            query = {"$pull": {"favRest": rest_data['_id']}}
+        elif data['type'] == 'add-fav-rest':
+            query = {'$push': {'favRest': rest_data['_id']}}
+        _user = user.find_one_and_update({'username': data['username']},
+                                         query, return_document=ReturnDocument.AFTER)
+        logging.info(f"User id: ({_user['_id']}) favourite restaurant updated.")
+        return True
+    except Exception as e:
+        logging.error(f'User favourite restaurant update failed, because {e}')
+        return False
+
+
 def add_category(data):
     try:
         username = data['username']

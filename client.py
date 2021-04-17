@@ -130,7 +130,7 @@ def handle_messages(connection: socket.socket):
                         print()
                         if decode_msg['msg'] == 'Login Fail.':
                             isLogin = False
-                            Login(connection)
+                            connection.close()
                         elif decode_msg['msg'] == 'Get restaurant failed.':
                             all_rest.clear()
                             all_rest.append('err')
@@ -223,6 +223,8 @@ def main() -> None:
                 # msg = input(username.upper() + '> ')
                 if msg.lower() == '/exit':
                     break
+                elif msg.lower() == '/clear':
+                    os.system('cls' if os.name == 'nt' else 'clear')
                 elif msg.lower() == '/help':
                     get_commands()
                 elif msg.lower() == '/help rest':
@@ -333,7 +335,8 @@ def AddRestaurantData(socket_instance):
 def get_commands():
     cmd = [
         {'command': '/help', 'desc': 'see all commands.'},
-        {'command': '/exit', 'desc': 'disconnect from server & exit program'},
+        {'command': '/exit', 'desc': 'disconnect from server & exit program.'},
+        {'command': '/clear', 'desc': 'clear your screen.'},
         {'command': '/rest',
          'desc': 'the commands for restaurant.\nusing `/help rest` to see more '
                  'restaurant commands.'},
@@ -382,6 +385,8 @@ def get_rest_commands():
 def get_user_commands():
     cmd = [
         {'command': '/user edit phone <value>', 'desc': 'edit user phone number.'},
+        {'command': '/user add fav-rest <rest_name>', 'desc': 'add favourite restaurant.'},
+        {'command': '/user remove fav-rest <rest_name>', 'desc': 'remove favourite restaurant.'},
     ]
     header = ['COMMAND', 'DESCRIPTION']
     rows = [x.values() for x in cmd]
@@ -395,6 +400,20 @@ def user_command(cmd: str, connection: socket.socket):
         data = {}
         data['username'] = username
         data['type'] = 'edit-user-phone'
+        data['value'] = _cmd[3]
+        connection.send(pickle.dumps(data))
+    elif cmd[:19].lower() == '/user add fav-rest ':
+        _cmd = cmd.split()
+        data = {}
+        data['username'] = username
+        data['type'] = 'add-fav-rest'
+        data['value'] = _cmd[3]
+        connection.send(pickle.dumps(data))
+    elif cmd[:22].lower() == '/user remove fav-rest ':
+        _cmd = cmd.split()
+        data = {}
+        data['username'] = username
+        data['type'] = 'remove-fav-rest'
         data['value'] = _cmd[3]
         connection.send(pickle.dumps(data))
     else:
