@@ -16,11 +16,10 @@ restaurant = db.restaurant
 restaurant_type = db.restaurantType
 category = db.category
 menu = db.menu
-salt = b'$2b$12$.oAv5kYzQ/bLcPlRVhtnHe'
 
 
 def encrypt_password(str_pwd):
-    return bcrypt.hashpw(str_pwd.encode('utf-8'), salt)
+    return bcrypt.hashpw(str_pwd.encode('utf-8'), bcrypt.gensalt())
 
 
 def is_account_exists(acc):
@@ -61,11 +60,12 @@ def register(user_data):
 
 
 def login(data):
-    data['password'] = encrypt_password(data['password'])
-    userdata = user.find_one(data)
-    if userdata is not None and userdata['password'] == data['password']:
-        logging.info(f'{data["username"]} logged in.')
-        return True
+    userdata = user.find_one({'username': data['username']})
+    if userdata is not None:
+        if bcrypt.checkpw(data['password'].encode(), userdata['password']):
+            print('Hello2')
+            logging.info(f'{data["username"]} logged in.')
+            return True
     else:
         logging.error(f'Failed to logged in with username: {data["username"]}.')
         return False
