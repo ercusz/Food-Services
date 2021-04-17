@@ -61,9 +61,8 @@ def register(user_data):
 
 def login(data):
     userdata = user.find_one({'username': data['username']})
-    if userdata is not None:
+    if userdata and data['username'] == userdata['username']:
         if bcrypt.checkpw(data['password'].encode(), userdata['password']):
-            print('Hello2')
             logging.info(f'{data["username"]} logged in.')
             return True
     else:
