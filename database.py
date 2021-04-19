@@ -1,6 +1,5 @@
+import itertools
 import logging
-import os
-import sys
 from PyInquirer import Separator
 from datetime import datetime, timezone
 import pytz
@@ -417,3 +416,54 @@ def get_restaurants_by_condition(data):
     except Exception as e:
         logging.error(f'Get restaurant failed, because {e}')
         return False
+
+
+def user_rest_menu(data):
+    try:
+        rest_data = restaurant.find_one({'name': data['rest_name']})
+        print(rest_data)
+        if rest_data:
+            rest_category = category.find({'rest_id': rest_data['_id']})
+            rest_cate = {}
+            for c in rest_category:
+                del c['_id']
+                del c['rest_id']
+                rest_cate.update({c.get('category_id'): c.get('name')})
+
+            result = menu.find({'rest_id': rest_data['_id']}).sort([('status', pymongo.DESCENDING)])
+
+            category_menu = []
+
+            for _, _category in itertools.groupby(result, key=lambda item: item['category_id']):
+                category_menu.append(list(_category))
+            all_data = ['user-rest-menu']
+
+            for cate in category_menu:
+                all_data.append(Separator('[' + str(rest_cate.get(cate[0]['category_id'])) + ']'))
+                for _menu in cate:
+                    if not _menu['status']:
+                        _menu['disabled'] = 'unavailable'
+                    _menu['name'] = _menu['name'] + " (฿" + str(_menu['price']) + ")"
+                    all_data.append(_menu)
+
+            print(all_data)
+            return all_data
+            #
+            # # print(result)
+            # _data = []
+            # for x in result:
+            #     #if x['category_id'] not in
+            #     if not x['status']:
+            #         x['disabled'] = 'unavailable'
+            #     _data.append(x)
+            # print(_data)
+            #
+            # return _data
+        else:
+            logging.error('Get restaurant menu failed, because restaurant not found.')
+            return 'err_rest_menu'
+    except Exception as e:
+        logging.error(f'Get restaurant menu failed, because {e}')
+        return False
+
+

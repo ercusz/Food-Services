@@ -1,7 +1,6 @@
 from __future__ import print_function, unicode_literals
-
 import time
-
+import uuid
 from PyInquirer import style_from_dict, Token, prompt, Separator, Validator, ValidationError
 from pprint import pprint
 import regex
@@ -23,7 +22,10 @@ style = style_from_dict({
     Token.Answer: '#f44336 bold',
     Token.Question: '',
 })
-
+selected_rest = ""
+menu_list = []
+orders_list = []
+order_id = ""
 all_rest = []
 inf = True
 isLogin = False
@@ -112,9 +114,10 @@ def handle_messages(connection: socket.socket):
     global disconnect
     global tips
     global all_rest
+    global menu_list
     while True:
         try:
-            msg = connection.recv(1024)
+            msg = connection.recv(4096)
 
             # If there is no message, there is a chance that connection has closed
             # so the connection will be closed and an error will be displayed.
@@ -134,6 +137,9 @@ def handle_messages(connection: socket.socket):
                         elif decode_msg['msg'] == 'Get restaurant failed.':
                             all_rest.clear()
                             all_rest.append('err')
+                        elif decode_msg['msg'] == 'Get restaurant menu failed.':
+                            menu_list.clear()
+                            menu_list.append('err')
 
                     elif decode_msg['type'] == 'success':
                         send_msg = decode_msg['msg']
@@ -179,17 +185,20 @@ def handle_messages(connection: socket.socket):
                     elif decode_msg[0] == 'all-rest':
                         decode_msg.pop(0)
                         all_rest = decode_msg
+                    elif decode_msg[0] == 'user-rest-menu':
+                        decode_msg.pop(0)
+                        menu_list = decode_msg
+
 
             else:
                 connection.close()
                 inf = False
                 break
-
         except Exception as e:
-            print(f'Error handling message from server: {e}')
-            print(disconnect)
             connection.close()
             inf = False
+            print(f'Error handling message from server: {e}')
+            print(disconnect)
             break
 
 
@@ -203,6 +212,7 @@ def main() -> None:
     global disconnect
     global username
     global all_rest
+    global selected_rest
     try:
         socket_instance = socket.socket()
         socket_instance.connect((host, port))
@@ -231,11 +241,19 @@ def main() -> None:
                     get_rest_commands()
                 elif msg.lower() == '/help user':
                     get_user_commands()
+                elif msg.lower() == '/help order':
+                    get_order_commands()
                 elif msg.lower()[:6] == '/rest ':
+                    os.system('cls' if os.name == 'nt' else 'clear')
                     rest_command(msg, socket_instance)
                 elif msg.lower()[:6] == '/user ':
+                    os.system('cls' if os.name == 'nt' else 'clear')
                     user_command(msg, socket_instance)
+                elif msg.lower()[:7] == '/order ':
+                    os.system('cls' if os.name == 'nt' else 'clear')
+                    order_command(msg, socket_instance)
                 elif msg.lower()[:18] == '/select rest from ':
+                    os.system('cls' if os.name == 'nt' else 'clear')
                     all_rest = []
                     cmd = msg.split()
                     if cmd[3] == 'all':
@@ -259,6 +277,10 @@ def main() -> None:
                                 }
                             ]
                             answers = prompt(rest_list, style=style)
+                            #print(answers['selected_rest'])
+                            selected_rest = answers['selected_rest']
+                            _data = {'type': 'user-rest-menu', 'rest_name': selected_rest}
+                            socket_instance.send(pickle.dumps(_data))
                             pprint(answers)
                             break
                         else:
@@ -393,6 +415,50 @@ def get_user_commands():
     print(tabulate(rows, headers=header, tablefmt='fancy_grid'))
 
 
+def get_order_commands():
+    cmd = [
+        {'command': '/order create', 'desc': 'create new order.'},
+        {'command': '/order edit', 'desc': 'edit your order. (create order first!)'},
+        {'command': '/order confirm', 'desc': 'confirm your current order.'},
+        {'command': '/order view <order_id>', 'desc': 'view order details.'},
+        {'command': '/order cancel <order_id>', 'desc': 'cancel your order. (before restaurant making your order!)'},
+        {'command': '/order history', 'desc': 'show your orders history.'},
+        {'command': '/order rate <order_id>', 'desc': 'rate your orders.'}
+    ]
+    header = ['COMMAND', 'DESCRIPTION']
+    rows = [x.values() for x in cmd]
+    print(tabulate(rows, headers=header, tablefmt='fancy_grid'))
+
+
+def order_command(cmd: str, connection: socket.socket):
+    global username
+    global orders_list
+    global order_id
+    global menu_list
+
+    if cmd[:13].lower() == '/order create':
+        orders_list.clear()
+        order_id = uuid.uuid4().hex[:8]
+        print(f'Order create with id: {order_id}')
+        while True:
+            if menu_list and len(menu_list) > 2:
+                print('ctrl+c to exit selection.')
+                menu_lists = [
+                    {
+                        'type': 'checkbox',
+                        'message': 'Select restaurant',
+                        'name': 'selected_menu',
+                        'choices': menu_list
+                    }
+                ]
+                answers = prompt(menu_lists, style=style)
+                pprint(answers['selected_menu'])
+                break
+            else:
+                if menu_list and menu_list[0] == 'err':
+                    break
+
+
 def user_command(cmd: str, connection: socket.socket):
     global username
     if cmd[:17].lower() == '/user edit phone ':
@@ -502,6 +568,8 @@ def rest_command(cmd: str, connection: socket.socket):
             data['field'] = _cmd[5]
             if data['field'] == 'price':
                 data['value'] = int(_cmd[6])
+            elif data['field'] == 'status':
+                data['value'] = bool(_cmd[6])
             else:
                 data['value'] = _cmd[6]
             connection.send(pickle.dumps(data))

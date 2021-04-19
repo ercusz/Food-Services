@@ -24,7 +24,7 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
     while True:
         try:
             # Get client message
-            msg = connection.recv(1024)
+            msg = connection.recv(4096)
             # If no message is received, there is a chance that connection has ended
             # so in this case, we need to close connection and remove it from connections list.
             if msg:
@@ -225,7 +225,7 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                         if db.check_restaurant_account(msg_decode['username']):
                             result = db.rest_menu(msg_decode)
                             if result == 'err_rest_menu':
-                                res = packed_respond('err', 'Get restaurant category failed.')
+                                res = packed_respond('err', 'Get restaurant menu failed.')
                                 connection.send(pickle.dumps(res))
                             elif result[0] == 'rest-menu':
                                 connection.send(pickle.dumps(result))
@@ -258,6 +258,15 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                         else:
                             res = packed_respond('success', 'Your favourite restaurant updated.')
                             connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'user-rest-menu':
+                        del msg_decode['type']
+                        result = db.user_rest_menu(msg_decode)
+                        if not result:
+                            res = packed_respond('err', 'Get restaurant menu failed.')
+                            connection.send(pickle.dumps(res))
+                        elif result[0] == 'user-rest-menu':
+                            connection.send(pickle.dumps(result))
 
 
                 #if pickle.loads(msg) != "":
@@ -383,7 +392,7 @@ def main() -> None:
 
 
 def change_title():
-    os.system("title " + "(SERVE)CONNECTED CLIENT = " + str(len(connections)))
+    os.system("title " + "(SERVER) " + str(len(connections)) + " connection(s)")
 
 
 if __name__ == "__main__":
