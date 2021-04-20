@@ -268,6 +268,16 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                         elif result[0] == 'user-rest-menu':
                             connection.send(pickle.dumps(result))
 
+                    elif msg_decode['type'] == 'promo-code':
+                        del msg_decode['type']
+                        result = db.apply_promo_code(msg_decode)
+                        if not result:
+                            res = packed_respond('err', 'Can\'t applied promo code.')
+                            connection.send(pickle.dumps(res))
+                        elif type(result) == dict:
+                            result['type'] = 'promo'
+                            connection.send(pickle.dumps(result))
+
 
                 #if pickle.loads(msg) != "":
                     #Log message sent by user
@@ -283,6 +293,9 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                 break
 
         except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
             logging.error(f'Error to handle user connection: {e}')
             logging.info(f'({address[0]}:{address[1]} disconnected)')
             remove_connection(connection)
@@ -378,6 +391,9 @@ def main() -> None:
 
 
     except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno)
         logging.info(f'({address[0]}:{address[1]} disconnected.)')
         logging.error(f'An error has occurred when instancing socket: {e}')
         change_title()

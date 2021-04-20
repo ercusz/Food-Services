@@ -15,6 +15,7 @@ restaurant = db.restaurant
 restaurant_type = db.restaurantType
 category = db.category
 menu = db.menu
+discount = db.discount
 
 
 def encrypt_password(str_pwd):
@@ -421,7 +422,6 @@ def get_restaurants_by_condition(data):
 def user_rest_menu(data):
     try:
         rest_data = restaurant.find_one({'name': data['rest_name']})
-        print(rest_data)
         if rest_data:
             rest_category = category.find({'rest_id': rest_data['_id']})
             rest_cate = {}
@@ -446,24 +446,41 @@ def user_rest_menu(data):
                     _menu['name'] = _menu['name'] + " (฿" + str(_menu['price']) + ")"
                     all_data.append(_menu)
 
-            print(all_data)
             return all_data
-            #
-            # # print(result)
-            # _data = []
-            # for x in result:
-            #     #if x['category_id'] not in
-            #     if not x['status']:
-            #         x['disabled'] = 'unavailable'
-            #     _data.append(x)
-            # print(_data)
-            #
-            # return _data
         else:
             logging.error('Get restaurant menu failed, because restaurant not found.')
             return 'err_rest_menu'
     except Exception as e:
         logging.error(f'Get restaurant menu failed, because {e}')
+        return False
+
+
+def apply_promo_code(data):
+    try:
+        user_data = user.find_one({'username': data['username']})
+        discount_data = discount.find_one({'code': data['code']})
+        if discount_data['status']:
+            if discount_data['newuser']:
+                is_new_user = user_data['isNewUser']
+                if is_new_user:
+                    _data = {}
+                    _data['promo-type'] = discount_data['type']
+                    _data['value'] = discount_data['value']
+                    logging.info(f"User ({user_data['_id']}) using promo code ({discount_data['code']})")
+                    return _data
+                else:
+                    return False
+            else:
+                _data = {}
+                _data['promo-type'] = discount_data['type']
+                _data['value'] = discount_data['value']
+                logging.info(f"User ({user_data['_id']}) using promo code ({discount_data['code']})")
+                return _data
+        else:
+            return False
+
+    except Exception as e:
+        logging.error(f'Apply promo code failed, because {e}')
         return False
 
 

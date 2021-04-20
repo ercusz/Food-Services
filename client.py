@@ -14,14 +14,15 @@ from ansimarkup import ansiprint as print
 from tabulate import tabulate
 
 style = style_from_dict({
-    Token.Separator: '#6C6C6C',
+    Token.Separator: '#2ECC71',
     Token.QuestionMark: '#FF9D00 bold',
-    Token.Selected: '#5F819D',
+    Token.Selected: '#2ECC71',
     Token.Pointer: '#FF9D00 bold',
     Token.Instruction: '',  # default
     Token.Answer: '#f44336 bold',
     Token.Question: '',
 })
+discount = {}
 selected_rest = ""
 menu_list = []
 orders_list = []
@@ -115,6 +116,7 @@ def handle_messages(connection: socket.socket):
     global tips
     global all_rest
     global menu_list
+    global discount
     while True:
         try:
             msg = connection.recv(4096)
@@ -140,6 +142,8 @@ def handle_messages(connection: socket.socket):
                         elif decode_msg['msg'] == 'Get restaurant menu failed.':
                             menu_list.clear()
                             menu_list.append('err')
+                        elif decode_msg['msg'] == 'Can\'t applied promo code.':
+                            discount = decode_msg
 
                     elif decode_msg['type'] == 'success':
                         send_msg = decode_msg['msg']
@@ -166,6 +170,10 @@ def handle_messages(connection: socket.socket):
                         print(
                             tabulate(data, headers=header, stralign='center', numalign='center', tablefmt='fancy_grid'))
                         print()
+
+                    elif decode_msg['type'] == 'promo':
+                        discount = decode_msg
+
 
                 if type(decode_msg) == list:
                     if decode_msg[0] == 'rest-category':
@@ -197,6 +205,9 @@ def handle_messages(connection: socket.socket):
         except Exception as e:
             connection.close()
             inf = False
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
             print(f'Error handling message from server: {e}')
             print(disconnect)
             break
@@ -213,6 +224,10 @@ def main() -> None:
     global username
     global all_rest
     global selected_rest
+    global orders_list
+    global order_id
+    global menu_list
+    global discount
     try:
         socket_instance = socket.socket()
         socket_instance.connect((host, port))
@@ -277,7 +292,11 @@ def main() -> None:
                                 }
                             ]
                             answers = prompt(rest_list, style=style)
-                            #print(answers['selected_rest'])
+                            # print(answers['selected_rest'])
+                            orders_list = []
+                            order_id = ""
+                            menu_list = []
+                            discount = {}
                             selected_rest = answers['selected_rest']
                             _data = {'type': 'user-rest-menu', 'rest_name': selected_rest}
                             socket_instance.send(pickle.dumps(_data))
@@ -300,6 +319,9 @@ def main() -> None:
     except:
         # print(f'Error, Can\'t connect to server!: {e}')
         # print(disconnect)
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno)
         socket_instance.close()
         sys.exit()
 
@@ -435,28 +457,151 @@ def order_command(cmd: str, connection: socket.socket):
     global orders_list
     global order_id
     global menu_list
-
+    global discount
+    global selected_rest
     if cmd[:13].lower() == '/order create':
-        orders_list.clear()
-        order_id = uuid.uuid4().hex[:8]
-        print(f'Order create with id: {order_id}')
-        while True:
-            if menu_list and len(menu_list) > 2:
-                print('ctrl+c to exit selection.')
-                menu_lists = [
-                    {
-                        'type': 'checkbox',
-                        'message': 'Select restaurant',
-                        'name': 'selected_menu',
-                        'choices': menu_list
-                    }
-                ]
-                answers = prompt(menu_lists, style=style)
-                pprint(answers['selected_menu'])
-                break
-            else:
-                if menu_list and menu_list[0] == 'err':
+        if selected_rest != "":
+            orders_list.clear()
+            order_id = uuid.uuid4().hex[:8]
+            print(f"<bold><fg #ffffff><bg #000000>Order create with id: #{order_id}</bg #000000></fg #ffffff></bold>")
+            restaurant_details()
+            while True:
+                if menu_list and len(menu_list) > 2:
+                    menu_lists = [
+                        {
+                            'type': 'checkbox',
+                            'message': 'Select menu',
+                            'name': 'selected_menu',
+                            'choices': menu_list
+                        }
+                    ]
+                    answers = prompt(menu_lists, style=style)
+                    orders_list = answers['selected_menu']
+                    #print(orders_list)
+                    show_order()
                     break
+                else:
+                    if menu_list and menu_list[0] == 'err':
+                        break
+        else:
+            print(error, " Please choose restaurant before ordering!")
+
+    elif cmd[:11].lower() == '/order edit':
+        if order_id != "":
+            new_menu = []
+            for menu in menu_list:
+                if type(menu) == dict and menu['name'] in orders_list:
+                    menu['checked'] = True
+                new_menu.append(menu)
+
+            print(f'<bold><fg #ffffff><bg #000000>Edit order id: #{order_id}</bg #000000></fg #ffffff></bold>')
+            restaurant_details()
+            menu_lists = [
+                {
+                    'type': 'checkbox',
+                    'message': 'Select menu',
+                    'name': 'selected_menu',
+                    'choices': new_menu
+                }
+            ]
+            answers = prompt(menu_lists, style=style)
+            orders_list = answers['selected_menu']
+            #print(orders_list)
+            show_order()
+        else:
+            print(error, " Please create order before editing!")
+
+    elif cmd[:14].lower() == '/order confirm':
+        if len(orders_list) > 0 and order_id != "":
+            print(f'<bold><fg #ffffff><bg #000000>Confirm order id: #{order_id}</bg #000000></fg #ffffff></bold>')
+            restaurant_details()
+            total = show_order()
+            promo_questions = [
+                {
+                    'type': 'confirm',
+                    'message': 'Do you have a promo code? ',
+                    'name': 'use_promo',
+                    'default': False
+                },
+                {
+                    'type': 'input',
+                    'name': 'promo',
+                    'message': 'Enter a promo code'
+                },
+                {
+                    'type': 'confirm',
+                    'message': 'Do you to confirm this order? ',
+                    'name': 'confirm_order',
+                    'default': False
+                }
+            ]
+            chk = prompt(promo_questions[0], style=style)['use_promo']
+            if chk:
+                code = prompt(promo_questions[1], style=style)['promo']
+                data = {}
+                data['type'] = 'promo-code'
+                data['username'] = username
+                data['code'] = code
+                connection.send(pickle.dumps(data))
+                while True:
+                    if discount and len(discount) > 2:
+                        if discount['promo-type'] == 'percent':
+                            txt_discount = str(discount['value']) + "%"
+                            dis = total * (discount['value']/100.0)
+                            total = total - dis
+                        elif discount['promo-type'] == 'value':
+                            txt_discount = str(discount['value']) + "฿"
+                            dis = discount['value']
+                            total = total - dis
+                        print(f'Promo code: {code} (save {txt_discount})')
+                        print(f'<bold,,red><fg #FFFFFF>Discount: {dis}฿</fg #FFFFFF></bold,,red>')
+                        print(f'<bold><fg #ffffff><bg #000000>💰NEW TOTAL PRICE = {total}฿</bg #000000></fg #ffffff></bold>')
+                        print()
+                        break
+                    else:
+                        if discount and discount['type'] == 'err':
+                            break
+            else:
+                print('promo code not applied.')
+            conf = prompt(promo_questions[2], style=style)['confirm_order']
+            if conf:
+                print('Order confirmed.')
+                discount = {}
+                orders_list = []
+                order_id = ""
+                menu_list = []
+                selected_rest = ""
+            else:
+                print('Order not confirmed.')
+        else:
+            print(error, " Not found your order that is ready to confirm!")
+
+
+def show_order():
+    global menu_list
+    data = []
+    total = 0
+    for menu in menu_list:
+        if type(menu) == dict and menu['name'] in orders_list:
+            data.append([menu['name'].split()[0], menu['price']])
+            total += menu['price']
+    header = ['NAME', 'PRICE(฿)']
+    print(tabulate(data, headers=header, numalign='center',
+                   tablefmt='fancy_grid'))
+    print(f'<bold><fg #ffffff><bg #000000>💰TOTAL PRICE = {total}฿</bg #000000></fg #ffffff></bold>')
+    print()
+    return total
+
+
+def restaurant_details():
+    global all_rest
+    global selected_rest
+    data = []
+    for rest in all_rest:
+         if type(rest) == dict and rest['name'] == selected_rest:
+            data.append(rest)
+
+    print(f'<bold><fg #ffffff><bg #000000>RESTAURANT: {data[0]["name"]} ({data[0]["rest_type"]}) \nRATING: <fg #F4D03F>★</fg #F4D03F> {data[0]["rating"]:.1f} </bg #000000></fg #ffffff></bold>')
 
 
 def user_command(cmd: str, connection: socket.socket):
