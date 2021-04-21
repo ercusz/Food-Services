@@ -669,3 +669,80 @@ def rate_order(data):
         return False
 
 
+def rest_view_order(data):
+    try:
+        user_data = user.find_one({'username': data['username']})
+        rest_data = restaurant.find_one({'_id': user_data['ownerOf']})
+        if user_data and rest_data:
+            _data = []
+            _data.append('rest-order')
+            for _order in order.find({'rest_name': rest_data['name'], 'status': data['status']}).sort([('status', pymongo.ASCENDING)]):
+
+                _order['_id'] = _order['_id']
+
+                if _order['status'] == 0:
+                    _order['status'] = 'waiting⏳'
+                elif _order['status'] == 1:
+                    _order['status'] = 'cooking👨‍🍳'
+                elif _order['status'] == 2:
+                    _order['status'] = 'finish✅'
+                elif _order['status'] == 3:
+                    _order['status'] = 'cancel❌'
+
+                menu = ""
+                for _o in _order['menu']:
+                    menu = menu + _o + "\n"
+                _order['menu'] = menu
+
+                _order['createDate'] = _order['createDate'].strftime("%d/%m/%Y\n%H:%M:%S")
+                #_data.append(list(_order.values()))
+
+                _order.pop('rest_name')
+                _order['MENU LIST'] = _order.pop('menu')
+                _order['PRICE'] = _order.pop('price')
+                _order['COMMENT'] = _order.pop('comment')
+                _order['CREATE AT'] = _order.pop('createDate')
+                _order['ORDER STATUS'] = _order.pop('status')
+
+
+                temp = []
+                for k, i in _order.items():
+                    temp.append([k, i])
+
+                _data.append(temp)
+
+            logging.info(f"Send order list to restaurant ({rest_data['name']})")
+            if len(_data) > 1:
+                return _data
+            else:
+                return False
+        else:
+            logging.error('Get order failed, because user not owner of restaurant.')
+            return False
+    except Exception as e:
+        logging.error(f'Get order failed, because {e}')
+        return False
+
+
+def rest_edit_order(data):
+    try:
+        user_data = user.find_one({'username': data['username']})
+        rest_data = restaurant.find_one({'_id': user_data['ownerOf']})
+        if user_data and rest_data:
+            result = order.find_one_and_update({"rest_name": rest_data['name'], "_id": data['order_id'], "status": {'$in': [0, 1]}},
+                                                     {'$set': {'status': data['status']}},
+                                                     return_document=ReturnDocument.AFTER)
+            if result:
+                logging.info(f"The restaurant ({rest_data['name']}) update order status for order id: ({result['_id']}).")
+                return True
+            else:
+                logging.error(f'Update order failed, because order not found.')
+                return False
+        else:
+            logging.error('Update order failed, because user not owner of restaurant.')
+            return False
+    except Exception as e:
+        logging.error(f'Update order failed, because {e}')
+        return False
+
+

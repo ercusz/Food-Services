@@ -224,6 +224,14 @@ def handle_messages(connection: socket.socket):
                             o.pop(0)
                             print(tabulate(o, tablefmt='fancy_grid'))
                             print()
+                    elif decode_msg[0] == 'rest-order':
+                        decode_msg.pop(0)
+                        print('Order View')
+                        for o in decode_msg:
+                            print(f"<bold><fg #ffffff><bg #000000>ORDER ID: #{o[0][1]}</bg #000000></fg #ffffff></bold>")
+                            o.pop(0)
+                            print(tabulate(o, tablefmt='fancy_grid'))
+                            print()
 
 
             else:
@@ -330,7 +338,7 @@ def main() -> None:
                             selected_rest = answers['selected_rest']
                             _data = {'type': 'user-rest-menu', 'rest_name': selected_rest}
                             socket_instance.send(pickle.dumps(_data))
-                            pprint(answers)
+                            #pprint(answers)
                             break
                         else:
                             if all_rest and all_rest[0] == 'err':
@@ -448,7 +456,10 @@ def get_rest_commands():
         {'command': '/rest menu add <name> <price> <category_id>', 'desc': 'add new menu into your restaurant.'},
         {'command': '/rest menu remove <name>', 'desc': 'remove menu into your restaurant.'},
         {'command': '/rest menu edit <name/all>\n as <name/price/category/status> <value>', 'desc': 'edit menu '
-                                                                                                    'information.'}
+                                                                                                    'information.'},
+        {'command': '/rest order view <waiting/cooking/finish/cancel>', 'desc': 'view restaurant orders by status.'},
+        {'command': '/rest order edit <order_id> as status <value>', 'desc': 'edit order status. (not work when status value = <finish/cancel>)'},
+        {'command': '/rest order sales <daily/week/month>', 'desc': 'view the restaurant\'s sales by a period of time.'},
     ]
     header = ['COMMAND', 'DESCRIPTION']
     rows = [x.values() for x in cmd]
@@ -669,6 +680,9 @@ def order_command(cmd: str, connection: socket.socket):
         else:
             print(error, 'Please input the number between 1-5.')
 
+    else:
+        print(f'<red>Unknown the `{cmd}` command.</red>')
+
 
 def show_order():
     global menu_list
@@ -818,6 +832,48 @@ def rest_command(cmd: str, connection: socket.socket):
             connection.send(pickle.dumps(data))
         else:
             print(f'<red>Unknown the `{_cmd[2]}` field.</red>')
+    elif cmd[:17].lower() == '/rest order view ':
+        data = {}
+        data['type'] = 'rest-order-view'
+        data['username'] = username
+        _cmd = cmd.split()
+        if _cmd[3].lower() == 'waiting':
+            data['status'] = 0
+        elif _cmd[3].lower() == 'cooking':
+            data['status'] = 1
+        elif _cmd[3].lower() == 'finish':
+            data['status'] = 2
+        elif _cmd[3].lower() == 'cancel':
+            data['status'] = 3
+        else:
+            print(f'<red>Unknown the `{_cmd[3]}` status.</red>')
+        connection.send(pickle.dumps(data))
+    elif cmd[:17].lower() == '/rest order edit ':
+        data = {}
+        data['type'] = 'rest-order-edit'
+        data['username'] = username
+        _cmd = cmd.split()
+        oid = _cmd[3]
+        status = _cmd[6]
+
+        if oid.startswith('#'):
+            data['order_id'] = oid[1:]
+        else:
+            data['order_id'] = oid
+
+        if status == 'waiting':
+            data['status'] = 0
+        elif status == 'cooking':
+            data['status'] = 1
+        elif status == 'finish':
+            data['status'] = 2
+        elif status == 'cancel':
+            data['status'] = 3
+        else:
+            print(f'<red>Unknown the `{_cmd[3]}` status.</red>')
+
+        connection.send(pickle.dumps(data))
+
     else:
         print(f'<red>Unknown the `{cmd}` command.</red>')
 
