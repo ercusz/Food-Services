@@ -500,6 +500,7 @@ def order_command(cmd: str, connection: socket.socket):
     global discount
     global selected_rest
     global order_comment
+    global error
     if cmd[:13].lower() == '/order create':
         if selected_rest != "":
             orders_list.clear()
@@ -531,6 +532,10 @@ def order_command(cmd: str, connection: socket.socket):
                 else:
                     if menu_list and menu_list[0] == 'err':
                         break
+                    elif len(menu_list) <= 1:
+                        print(error + " " + 'The restaurant menu not found.')
+                        break
+
         else:
             print(error, " Please choose restaurant before ordering!")
 
@@ -706,14 +711,16 @@ def show_order():
 def restaurant_details():
     global all_rest
     global selected_rest
-    data = []
+    data = {}
     for rest in all_rest:
-         if type(rest) == dict and rest['name'] == selected_rest:
+        if type(rest) == dict and rest['name'] == selected_rest:
             if rest['rating'] <= 0:
                 rest['rating'] = 'N/A'
-            data.append(rest)
+            else:
+                rest['rating'] = f"{rest['rating']:.1f}"
+            data = rest
 
-    print(f'<bold><fg #ffffff><bg #000000>RESTAURANT: {data[0]["name"]} ({data[0]["rest_type"]}) \nRATING: <fg #F4D03F>★</fg #F4D03F> {data[0]["rating"]:.1f} </bg #000000></fg #ffffff></bold>')
+    print(f'<bold><fg #ffffff><bg #000000>RESTAURANT: {data["name"]} ({data["rest_type"]}) \nRATING: <fg #F4D03F>★</fg #F4D03F> {data["rating"]} </bg #000000></fg #ffffff></bold>')
 
 
 def user_command(cmd: str, connection: socket.socket):

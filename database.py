@@ -420,6 +420,7 @@ def get_restaurants_by_condition(data):
 
         data = ['all-rest', Separator('= Restaurant List ='), {'name': 'Select to exit restaurant or Press (ctrl+c)'}]
         for x in result:
+            x['rating'] = cal_rest_rating(x['rating'])
             if not x['open']:
                 x['disabled'] = 'closed'
             data.append(x)
@@ -460,10 +461,11 @@ def user_rest_menu(data):
                     _menu['name'] = _menu['name'] + " (฿" + str(_menu['price']) + ")"
                     all_data.append(_menu)
 
-            return all_data
+            else:
+                return all_data
         else:
             logging.error('Get restaurant menu failed, because restaurant not found.')
-            return 'err_rest_menu'
+            return False
     except Exception as e:
         logging.error(f'Get restaurant menu failed, because {e}')
         return False
