@@ -278,6 +278,54 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                             result['type'] = 'promo'
                             connection.send(pickle.dumps(result))
 
+                    elif msg_decode['type'] == 'confirm-order':
+                        del msg_decode['type']
+                        result = db.order_confirm(msg_decode)
+                        if not result:
+                            res = packed_respond('err', 'Can\'t confirm your order, please try again later.')
+                            connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('success', 'Order confirmed.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'order-history':
+                        del msg_decode['type']
+                        result = db.order_history(msg_decode)
+                        if not result:
+                            res = packed_respond('err', 'Order history not found.')
+                            connection.send(pickle.dumps(res))
+                        elif result[0] == 'user-order-list':
+                            connection.send(pickle.dumps(result))
+
+                    elif msg_decode['type'] == 'order-cancel':
+                        del msg_decode['type']
+                        result = db.cancel_order(msg_decode)
+                        if not result:
+                            res = packed_respond('err', 'Order not found.')
+                            connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('success', 'The order has been canceled.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'order-view':
+                        del msg_decode['type']
+                        result = db.view_order(msg_decode)
+                        if not result:
+                            res = packed_respond('err', 'Order not found.')
+                            connection.send(pickle.dumps(res))
+                        elif result[0] == 'user-order':
+                            connection.send(pickle.dumps(result))
+
+                    elif msg_decode['type'] == 'order-rate':
+                        del msg_decode['type']
+                        result = db.rate_order(msg_decode)
+                        if not result:
+                            res = packed_respond('err', 'Fail to rate your order.')
+                            connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('success', 'Order rated.')
+                            connection.send(pickle.dumps(res))
+
 
                 #if pickle.loads(msg) != "":
                     #Log message sent by user

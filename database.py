@@ -16,6 +16,7 @@ restaurant_type = db.restaurantType
 category = db.category
 menu = db.menu
 discount = db.discount
+order = db.order
 
 
 def encrypt_password(str_pwd):
@@ -30,10 +31,16 @@ def is_account_exists(acc):
         return True
 
 
+def cal_rest_rating(rating):
+    sum_rating = sum(rating.values())
+    if sum_rating > 0:
+        return (5*rating['five'] + 4*rating['four'] + 3*rating['three'] + 2*rating['two'] + 1*rating['one']) / sum_rating
+    else:
+        return 0
+
 def register(user_data):
     if not is_account_exists(user_data):
         try:
-            th = pytz.timezone('Asia/Bangkok')
             date = datetime.now()
             if user_data['restaurant']:
                 user_data
@@ -42,7 +49,7 @@ def register(user_data):
                 user_data['favRest'] = []
 
             user_data['password'] = encrypt_password(user_data['password'])
-            user_data['createDate'] = date.astimezone(th)
+            user_data['createDate'] = date
 
             user_id = user.insert_one(user_data).inserted_id
             if user_data['restaurant']:
@@ -87,7 +94,13 @@ def add_restaurant_data(data):
     try:
         username = data['username']
         del data['username']
-        data['rating'] = 0
+        data['rating'] = {
+            "five": 0,
+            "four": 0,
+            "three": 0,
+            "two": 0,
+            "one": 0
+        }
         data['open'] = False
         if not restaurant.find_one({'name': data['name']}):
             _id = restaurant.insert(data)
@@ -318,7 +331,7 @@ def rest_info(data):
             result['type'] = 'rest-info'
             rest_type = restaurant_type.find_one({'type_id': result['rest_type']})
             result['rest_type'] = "(" + result['rest_type'] + ") " + rest_type['name']
-            result['rating'] = "★ " + "{:.1f}".format(result['rating'])
+            result['rating'] = "★ " + "{:.1f}".format(cal_rest_rating(result['rating']))
             logging.info(f"Send restaurant ({result['_id']}) info to user ({username})")
             return result
         else:
@@ -374,6 +387,7 @@ def get_all_restaurants():
         result = restaurant.find().sort([('open', pymongo.DESCENDING)])
         data = ['all-rest', Separator('= Restaurant List =')]
         for x in result:
+            x['rating'] = cal_rest_rating(x['rating'])
             if not x['open']:
                 x['disabled'] = 'closed'
             data.append(x)
@@ -481,6 +495,177 @@ def apply_promo_code(data):
 
     except Exception as e:
         logging.error(f'Apply promo code failed, because {e}')
+        return False
+
+
+def order_confirm(data):
+    try:
+        user_data = user.find_one_and_update({"username": data['username'], "isNewUser": True},
+                                        {'$set': {'isNewUser': False}},
+                                        return_document=ReturnDocument.AFTER)
+        date = datetime.now()
+
+        data['createDate'] = date
+        data['status'] = 0
+        data['rated'] = False
+        order_id = order.insert_one(data).inserted_id
+        if order_id:
+            if user_data:
+                logging.info(f"set user ({data['username']}) status to old user.")
+            logging.info(f"New order created with id: ({order_id}), by user ({data['username']})")
+            return True
+    except Exception as e:
+        logging.error(f'Order create failed: because {e}')
+        return False
+
+
+def order_history(data):
+    try:
+        user_data = user.find_one({'username': data['username']})
+        if user_data:
+            _data = []
+            _data.append('user-order-list')
+            for _order in order.find({'username': data['username']}).sort([('status', pymongo.ASCENDING)]):
+                del _order['username']
+
+                _order['_id'] = _order['_id']
+
+                if _order['status'] == 0:
+                    _order['status'] = 'waiting⏳'
+                elif _order['status'] == 1:
+                    _order['status'] = 'cooking👨‍🍳'
+                elif _order['status'] == 2:
+                    _order['status'] = 'finish✅'
+                elif _order['status'] == 3:
+                    _order['status'] = 'cancel❌'
+
+                menu = ""
+                for _o in _order['menu']:
+                    menu = menu + _o + "\n"
+                _order['menu'] = menu
+
+                _order['createDate'] = _order['createDate'].strftime("%d/%m/%Y\n%H:%M:%S")
+                #_data.append(list(_order.values()))
+
+                _order['RESTAURANT'] = _order.pop('rest_name')
+                _order['MENU LIST'] = _order.pop('menu')
+                _order['PRICE'] = _order.pop('price')
+                _order['COMMENT'] = _order.pop('comment')
+                _order['CREATE AT'] = _order.pop('createDate')
+                _order['ORDER STATUS'] = _order.pop('status')
+
+
+                temp = []
+                for k, i in _order.items():
+                    temp.append([k, i])
+
+                _data.append(temp)
+
+            logging.info(f"Send orders list to user ({data['username']})")
+            if len(_data) > 1:
+                return _data
+            else:
+                return False
+        else:
+            logging.error('Get order failed, because order not found.')
+            return False
+    except Exception as e:
+        logging.error(f'Get order failed, because {e}')
+        return False
+
+
+def cancel_order(data):
+    try:
+        result = order.find_one_and_update({"_id": data['order_id'], "username": data['username'], "status": 0},
+                                        {'$set': {'status': 3}},
+                                        return_document=ReturnDocument.AFTER)
+        if result:
+            return True
+        else:
+            logging.error(f'Cancel order failed, because order not found.')
+            return False
+    except Exception as e:
+        logging.error(f'Cancel order failed, because {e}')
+        return False
+
+
+def view_order(data):
+    try:
+        user_data = user.find_one({'username': data['username']})
+        if user_data:
+            _data = []
+            _data.append('user-order')
+            for _order in order.find({'username': data['username'], '_id': data['order_id']}).sort([('status', pymongo.ASCENDING)]):
+                del _order['username']
+
+                _order['_id'] = _order['_id']
+
+                if _order['status'] == 0:
+                    _order['status'] = 'waiting⏳'
+                elif _order['status'] == 1:
+                    _order['status'] = 'cooking👨‍🍳'
+                elif _order['status'] == 2:
+                    _order['status'] = 'finish✅'
+                elif _order['status'] == 3:
+                    _order['status'] = 'cancel❌'
+
+                menu = ""
+                for _o in _order['menu']:
+                    menu = menu + _o + "\n"
+                _order['menu'] = menu
+
+                _order['createDate'] = _order['createDate'].strftime("%d/%m/%Y\n%H:%M:%S")
+                #_data.append(list(_order.values()))
+
+                _order['RESTAURANT'] = _order.pop('rest_name')
+                _order['MENU LIST'] = _order.pop('menu')
+                _order['PRICE'] = _order.pop('price')
+                _order['COMMENT'] = _order.pop('comment')
+                _order['CREATE AT'] = _order.pop('createDate')
+                _order['ORDER STATUS'] = _order.pop('status')
+
+
+                temp = []
+                for k, i in _order.items():
+                    temp.append([k, i])
+
+                _data.append(temp)
+
+            logging.info(f"Send order to user ({data['username']})")
+            if len(_data) > 1:
+                return _data
+            else:
+                return False
+        else:
+            logging.error('Get order failed, because order not found.')
+            return False
+    except Exception as e:
+        logging.error(f'Get order failed, because {e}')
+        return False
+
+
+def rate_order(data):
+    try:
+        dict_number = {1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five'}
+        rating_field = "rating." + dict_number.get(data['rating'])
+        result = order.find_one_and_update({"_id": data['order_id'], "username": data['username'], "rated": False, "status": 2},
+                                        {'$set': {'rated': True}},
+                                        return_document=ReturnDocument.AFTER)
+        if result:
+            _result = restaurant.find_one_and_update({"name": result['rest_name']},
+                                        {'$inc': {rating_field: 1}},
+                                        return_document=ReturnDocument.AFTER)
+            if _result:
+                logging.info(f"The user ({data['username']}) rated a restaurant.")
+                return True
+            else:
+                logging.error(f'Rate order failed, because restaurant not found.')
+                return False
+        else:
+            logging.error(f'Rate order failed, because order not found.')
+            return False
+    except Exception as e:
+        logging.error(f'Rate order failed, because {e}')
         return False
 
 
