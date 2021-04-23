@@ -353,6 +353,18 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                             res = packed_respond('err', 'Your account type is not restaurant.')
                             connection.send(pickle.dumps(res))
 
+                    elif msg_decode['type'] == 'rest-order-sales':
+                        if db.check_restaurant_account(msg_decode['username']):
+                            result = db.rest_sales(msg_decode)
+                            if not result:
+                                res = packed_respond('err', 'Get restaurant order sales fail.')
+                                connection.send(pickle.dumps(res))
+                            else:
+                                connection.send(pickle.dumps(result))
+                        else:
+                            res = packed_respond('err', 'Your account type is not restaurant.')
+                            connection.send(pickle.dumps(res))
+
 
                 #if pickle.loads(msg) != "":
                     #Log message sent by user

@@ -186,6 +186,17 @@ def handle_messages(connection: socket.socket):
                     elif decode_msg['type'] == 'promo':
                         discount = decode_msg
 
+                    elif decode_msg['type'] == 'rest-order-sales':
+                        del decode_msg['type']
+                        print('Restaurant Order Sales')
+                        print(f'from {decode_msg["date"][0].strftime("%d %B %Y")} - now.')
+                        del decode_msg['date']
+                        header = ['FINISHED ORDERS', 'CANCELED ORDERS', 'INCOMES(฿)']
+                        data = [decode_msg.values()]
+                        print(
+                            tabulate(data, headers=header, stralign='center', numalign='center', tablefmt='fancy_grid'))
+                        print()
+
 
                 if type(decode_msg) == list:
                     if decode_msg[0] == 'rest-category':
@@ -310,13 +321,19 @@ def main() -> None:
                     cmd = msg.split()
                     if cmd[3] == 'all':
                         data = {'type': 'all-rest'}
+                        socket_instance.send(pickle.dumps(data))
                     elif cmd[3] == 'fav':
                         data = {'type': 'get-rest-by-fav', 'username': username}
+                        socket_instance.send(pickle.dumps(data))
                     elif cmd[3] == 'name':
                         data = {'type': 'get-rest-by-name', 'value': cmd[4]}
+                        socket_instance.send(pickle.dumps(data))
                     elif cmd[3] == 'menu':
                         data = {'type': 'get-rest-by-menu', 'value': cmd[4]}
-                    socket_instance.send(pickle.dumps(data))
+                        socket_instance.send(pickle.dumps(data))
+                    else:
+                        print(f'<red>Unknown the `{cmd[3]}` field.</red>')
+
                     while True:
                         if all_rest and len(all_rest) > 2:
                             print('ctrl+c to exit selection.')
@@ -714,6 +731,7 @@ def restaurant_details():
     data = {}
     for rest in all_rest:
         if type(rest) == dict and rest['name'] == selected_rest:
+            rest['rating'] = float(rest['rating'])
             if rest['rating'] <= 0:
                 rest['rating'] = 'N/A'
             else:
@@ -878,9 +896,20 @@ def rest_command(cmd: str, connection: socket.socket):
             data['status'] = 3
         else:
             print(f'<red>Unknown the `{_cmd[3]}` status.</red>')
-
         connection.send(pickle.dumps(data))
-
+    elif cmd[:18].lower() == '/rest order sales ':
+        try:
+            data = {}
+            data['type'] = 'rest-order-sales'
+            data['username'] = username
+            range = cmd.lower().split()[3]
+            if range == 'daily' or range == 'week' or range == 'month':
+                data['time'] = range
+                connection.send(pickle.dumps(data))
+            else:
+                print(f'<red>Unknown the `{range}` range.</red>')
+        except Exception as e:
+            print(e)
     else:
         print(f'<red>Unknown the `{cmd}` command.</red>')
 

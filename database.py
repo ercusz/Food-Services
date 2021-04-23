@@ -1,7 +1,7 @@
 import itertools
 import logging
 from PyInquirer import Separator
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import pytz
 import pymongo
 import bcrypt
@@ -34,7 +34,7 @@ def is_account_exists(acc):
 def cal_rest_rating(rating):
     sum_rating = sum(rating.values())
     if sum_rating > 0:
-        return (5*rating['five'] + 4*rating['four'] + 3*rating['three'] + 2*rating['two'] + 1*rating['one']) / sum_rating
+        return float(5*rating['five'] + 4*rating['four'] + 3*rating['three'] + 2*rating['two'] + 1*rating['one']) / sum_rating
     else:
         return 0
 
@@ -748,3 +748,35 @@ def rest_edit_order(data):
         return False
 
 
+def rest_sales(data):
+    try:
+        date_range = {
+            'daily': {'$gte': datetime.now() - timedelta(hours=24), '$lt': datetime.now()},
+            'week': {'$gte': datetime.now() - timedelta(days=7), '$lt': datetime.now()},
+            'month': {'$gte': datetime.now() - timedelta(days=30), '$lt': datetime.now()}
+        }
+        _data = {'type': data['type'], 'date': list(date_range.get(data['time']).values())}
+        user_data = user.find_one({'username': data['username']})
+        rest_data = restaurant.find_one({'_id': user_data['ownerOf']})
+        if user_data and rest_data:
+            f = order.count_documents({"rest_name": rest_data['name'],
+                                       "status": 2,
+                                       'createDate': date_range.get(data['time'])})
+            _data['finish'] = f
+            cc = order.count_documents({"rest_name": rest_data['name'],
+                                       "status": 3,
+                                       'createDate': date_range.get(data['time'])})
+            _data['cancel'] = cc
+            income = order.find({"rest_name": rest_data['name'],
+                                       "status": 2,
+                                       'createDate': date_range.get(data['time'])})
+            _data['income'] = 0
+            for i in income:
+                _data['income'] = _data['income'] + i['price']
+            return _data
+        else:
+            return False
+
+    except Exception as e:
+        logging.error(f'Get restaurant sales failed, because {e}')
+        return False
