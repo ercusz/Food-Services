@@ -15,7 +15,7 @@ login = False
 account = {}
 
 
-def handle_user_connection(connection: socket.socket, address: str) -> None:
+def handle_user_connection(server: socket.socket, connection: socket.socket, address: str) -> None:
     '''
         Get user connection in order to keep receiving their messages and
         sent to others users/connections.
@@ -36,6 +36,7 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                             del account['type']
                             if db.login(account):
                                 res = packed_respond('success', 'Login Successfully.')
+                                res['isAdmin'] = db.is_admin_account(account)
                                 connection.send(pickle.dumps(res))
                                 login = True
                             else:
@@ -45,6 +46,7 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                             del account['type']
                             if db.register(account):
                                 res = packed_respond('success', 'Register Successfully.')
+                                res['isAdmin'] = db.is_admin_account(account)
                                 connection.send(pickle.dumps(res))
                                 login = True
                             else:
@@ -365,6 +367,27 @@ def handle_user_connection(connection: socket.socket, address: str) -> None:
                             res = packed_respond('err', 'Your account type is not restaurant.')
                             connection.send(pickle.dumps(res))
 
+                    elif msg_decode['type'] == 'server-stop':
+                        if db.is_admin_account(msg_decode):
+                            broadcast("\n<bold,,red><fg #000000>\U0000274CSERVER STOPPED</fg #000000></bold,,red>",
+                                      socket.socket)
+                            if len(connections) > 0:
+                                for conn in connections:
+                                    remove_connection(conn)
+                            server.close()
+                        else:
+                            res = packed_respond('err', 'You don\'t have permission..')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'admin-broadcast':
+                        if db.is_admin_account(msg_decode):
+                            prefix = "\n<bold><bg #FF8BB2><fg #000000>💬SERVER</fg #000000></bg #FF8BB2></bold>"
+                            msg = prefix + " " +msg_decode['msg']
+                            broadcast(msg, socket.socket)
+                        else:
+                            res = packed_respond('err', 'You don\'t have permission..')
+                            connection.send(pickle.dumps(res))
+
 
                 #if pickle.loads(msg) != "":
                     #Log message sent by user
@@ -407,7 +430,8 @@ def broadcast(message: str, connection: socket.socket) -> None:
         if client_conn != connection:
             try:
                 # Sending message to client connection
-                client_conn.send(pickle.dumps(message))
+                res = packed_respond('broadcast', message)
+                client_conn.send(pickle.dumps(res))
 
             # if it fails, there is a chance of socket has died
             except Exception as e:
@@ -474,7 +498,7 @@ def main() -> None:
             account = {}
             # Start a new thread to handle client connection and receive it's messages
             # in order to send to others connections
-            threading.Thread(target=handle_user_connection, args=[socket_connection, address]).start()
+            threading.Thread(target=handle_user_connection, args=[socket_instance, socket_connection, address]).start()
 
 
     except Exception as e:

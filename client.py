@@ -31,6 +31,7 @@ order_id = ""
 all_rest = []
 inf = True
 isLogin = False
+isAdmin = False
 username = ""
 error = "\n<bold,,red><fg #FFFFFF>\U0000274CERROR</fg #FFFFFF></bold,,red>"
 success = "\n<bold,,green><fg #000000>\U00002705SUCCESS</fg #000000></bold,,green>"
@@ -122,6 +123,7 @@ def handle_messages(connection: socket.socket):
     global orders_list
     global order_comment
     global selected_rest
+    global isAdmin
     while True:
         try:
             msg = connection.recv(4096)
@@ -156,15 +158,24 @@ def handle_messages(connection: socket.socket):
                         print()
                         if decode_msg['msg'] == 'Login Successfully.' or decode_msg['msg'] == 'Register Successfully.':
                             os.system('cls' if os.name == 'nt' else 'clear')
-                            print(
-                                '<bold><fg #ffffff><bg #000000>' + '\n\U0001F44BHi, ' + username.upper() + '! are you hungry?\n' + '</bg #000000></fg #ffffff></bold>')
+                            if decode_msg['isAdmin']:
+                                isAdmin = True
+                                os.system("title " + "(ADMIN CLIENT) " + username.upper())
+                                print(
+                                    '<bold><fg #ffffff><bg #000000>' + '\n\U0001F44BHi, ' + username.upper() + '! you\'re in administrator system.\n' + '</bg #000000></fg #ffffff></bold>')
+                            else:
+                                isAdmin = False
+                                os.system("title " + "(CLIENT) " + username.upper())
+                                print(
+                                    '<bold><fg #ffffff><bg #000000>' + '\n\U0001F44BHi, ' + username.upper() + '! are you hungry?\n' + '</bg #000000></fg #ffffff></bold>')
                             print(
                                 tips + " " + "Type `<b><fg #1BF4FF>" + "/exit" + "</fg #1BF4FF></b>` to terminate program.")
                             print(
                                 tips + " " + "Type `<b><fg #1BF4FF>" + "/help" + "</fg #1BF4FF></b>` to see all commands.")
                             print()
+
                             isLogin = True
-                            os.system("title " + "(CLIENT) " + username.upper())
+
                         if decode_msg['msg'] == 'Order confirmed.':
                             discount = {}
                             orders_list = []
@@ -195,6 +206,11 @@ def handle_messages(connection: socket.socket):
                         data = [decode_msg.values()]
                         print(
                             tabulate(data, headers=header, stralign='center', numalign='center', tablefmt='fancy_grid'))
+                        print()
+
+                    elif decode_msg['type'] == 'broadcast':
+                        print()
+                        print(decode_msg['msg'])
                         print()
 
 
@@ -276,6 +292,7 @@ def main() -> None:
     global menu_list
     global discount
     global order_comment
+    global isAdmin
     try:
         socket_instance = socket.socket()
         socket_instance.connect((host, port))
@@ -291,80 +308,107 @@ def main() -> None:
 
         while inf:
             if isLogin:
-                print(f"\U0001F468<fg #FFB755>{username.upper()}</fg #FFB755>> ", end='')
-                msg = input()
-                # msg = input(username.upper() + '> ')
-                if msg.lower() == '/exit':
-                    break
-                elif msg.lower() == '/clear':
-                    os.system('cls' if os.name == 'nt' else 'clear')
-                elif msg.lower() == '/help':
-                    get_commands()
-                elif msg.lower() == '/help rest':
-                    get_rest_commands()
-                elif msg.lower() == '/help user':
-                    get_user_commands()
-                elif msg.lower() == '/help order':
-                    get_order_commands()
-                elif msg.lower()[:6] == '/rest ':
-                    os.system('cls' if os.name == 'nt' else 'clear')
-                    rest_command(msg, socket_instance)
-                elif msg.lower()[:6] == '/user ':
-                    os.system('cls' if os.name == 'nt' else 'clear')
-                    user_command(msg, socket_instance)
-                elif msg.lower()[:7] == '/order ':
-                    os.system('cls' if os.name == 'nt' else 'clear')
-                    order_command(msg, socket_instance)
-                elif msg.lower()[:18] == '/select rest from ':
-                    os.system('cls' if os.name == 'nt' else 'clear')
-                    all_rest = []
-                    cmd = msg.split()
-                    if cmd[3] == 'all':
-                        data = {'type': 'all-rest'}
+                if isAdmin:
+                    avatar = '🧙‍'
+                    txt_username = f'<fg red>{username.upper()}</fg red>'
+                    print(f"{avatar}{txt_username}> ", end='')
+                    msg = input()
+                    if msg.lower() == '/exit':
+                        break
+                    elif msg.lower() == '/clear':
+                        os.system('cls' if os.name == 'nt' else 'clear')
+                    elif msg.lower() == '/help':
+                        get_admin_commands()
+                    elif msg.lower() == '/server stop':
+                        data = {'type': 'server-stop', 'username': username}
                         socket_instance.send(pickle.dumps(data))
-                    elif cmd[3] == 'fav':
-                        data = {'type': 'get-rest-by-fav', 'username': username}
-                        socket_instance.send(pickle.dumps(data))
-                    elif cmd[3] == 'name':
-                        data = {'type': 'get-rest-by-name', 'value': cmd[4]}
-                        socket_instance.send(pickle.dumps(data))
-                    elif cmd[3] == 'menu':
-                        data = {'type': 'get-rest-by-menu', 'value': cmd[4]}
-                        socket_instance.send(pickle.dumps(data))
-                    else:
-                        print(f'<red>Unknown the `{cmd[3]}` field.</red>')
-
-                    while True:
-                        if all_rest and len(all_rest) > 2:
-                            print('ctrl+c to exit selection.')
-                            rest_list = [
-                                {
-                                    'type': 'list',
-                                    'message': 'Select restaurant',
-                                    'name': 'selected_rest',
-                                    'choices': all_rest
-                                }
-                            ]
-                            answers = prompt(rest_list, style=style)
-                            # print(answers['selected_rest'])
-                            order_comment = ""
-                            orders_list = []
-                            order_id = ""
-                            menu_list = []
-                            discount = {}
-                            selected_rest = answers['selected_rest']
-                            _data = {'type': 'user-rest-menu', 'rest_name': selected_rest}
-                            socket_instance.send(pickle.dumps(_data))
-                            #pprint(answers)
-                            break
+                    elif msg.lower()[:11] == '/broadcast ':
+                        msg = msg.split()[1]
+                        if msg:
+                            data = {'type': 'admin-broadcast', 'username': username, 'msg': msg}
+                            socket_instance.send(pickle.dumps(data))
                         else:
-                            if all_rest and all_rest[0] == 'err':
-                                break
-
-                elif msg.lower() == '':
-                    continue
+                            print(f'<red>Unknown the `{msg}` command.</red>')
+                    elif msg.lower() == '':
+                        continue
+                    else:
+                        print(f'<red>Unknown the `{msg}` command.</red>')
                 else:
-                    print(f'<red>Unknown the `{msg}` command.</red>')
+                    avatar = '\U0001F468'
+                    txt_username = f'<fg #FFB755>{username.upper()}</fg #FFB755>'
+                    print(f"{avatar}{txt_username}> ", end='')
+                    msg = input()
+                    if msg.lower() == '/exit':
+                        break
+                    elif msg.lower() == '/clear':
+                        os.system('cls' if os.name == 'nt' else 'clear')
+                    elif msg.lower() == '/help':
+                        get_commands()
+                    elif msg.lower() == '/help rest':
+                        get_rest_commands()
+                    elif msg.lower() == '/help user':
+                        get_user_commands()
+                    elif msg.lower() == '/help order':
+                        get_order_commands()
+                    elif msg.lower()[:6] == '/rest ':
+                        os.system('cls' if os.name == 'nt' else 'clear')
+                        rest_command(msg, socket_instance)
+                    elif msg.lower()[:6] == '/user ':
+                        os.system('cls' if os.name == 'nt' else 'clear')
+                        user_command(msg, socket_instance)
+                    elif msg.lower()[:7] == '/order ':
+                        os.system('cls' if os.name == 'nt' else 'clear')
+                        order_command(msg, socket_instance)
+                    elif msg.lower()[:18] == '/select rest from ':
+                        os.system('cls' if os.name == 'nt' else 'clear')
+                        all_rest = []
+                        cmd = msg.split()
+                        if cmd[3] == 'all':
+                            data = {'type': 'all-rest'}
+                            socket_instance.send(pickle.dumps(data))
+                        elif cmd[3] == 'fav':
+                            data = {'type': 'get-rest-by-fav', 'username': username}
+                            socket_instance.send(pickle.dumps(data))
+                        elif cmd[3] == 'name':
+                            data = {'type': 'get-rest-by-name', 'value': cmd[4]}
+                            socket_instance.send(pickle.dumps(data))
+                        elif cmd[3] == 'menu':
+                            data = {'type': 'get-rest-by-menu', 'value': cmd[4]}
+                            socket_instance.send(pickle.dumps(data))
+                        else:
+                            print(f'<red>Unknown the `{cmd[3]}` field.</red>')
+
+                        while True:
+                            if all_rest and len(all_rest) > 2:
+                                print('ctrl+c to exit selection.')
+                                rest_list = [
+                                    {
+                                        'type': 'list',
+                                        'message': 'Select restaurant',
+                                        'name': 'selected_rest',
+                                        'choices': all_rest
+                                    }
+                                ]
+                                answers = prompt(rest_list, style=style)
+                                # print(answers['selected_rest'])
+                                order_comment = ""
+                                orders_list = []
+                                order_id = ""
+                                menu_list = []
+                                discount = {}
+                                selected_rest = answers['selected_rest']
+                                _data = {'type': 'user-rest-menu', 'rest_name': selected_rest}
+                                socket_instance.send(pickle.dumps(_data))
+                                #pprint(answers)
+                                break
+                            else:
+                                if all_rest and all_rest[0] == 'err':
+                                    break
+
+                    elif msg.lower() == '':
+                        continue
+                    else:
+                        print(f'<red>Unknown the `{msg}` command.</red>')
 
             # socket_instance.send(pickle.dumps(msg))
         socket_instance.close(socket_instance)
@@ -428,6 +472,22 @@ def AddRestaurantData(socket_instance):
     rest['phone'] = input('restaurant phone: ')
     rest['username'] = username
     socket_instance.send(pickle.dumps(rest))
+
+
+def get_admin_commands():
+    cmd = [
+        {'command': '/help', 'desc': 'see all administrator commands.'},
+        {'command': '/exit', 'desc': 'disconnect from server & exit program.'},
+        {'command': '/clear', 'desc': 'clear your screen.'},
+        {'command': '/server <stop>', 'desc': 'the command to stop a current server.'},
+        {'command': '/server irc <port>', 'desc': 'the command to starting an IRC.'},
+        {'command': '/broadcast <message>', 'desc': 'the command to send message to all connected clients.'},
+        {'command': '/client stop <username>', 'desc': 'the command to terminate client by username.'},
+        {'command': '/account delete <username>', 'desc': 'the command to delete an account by username.'}
+    ]
+    header = ['COMMAND', 'DESCRIPTION']
+    rows = [x.values() for x in cmd]
+    print(tabulate(rows, headers=header, tablefmt='fancy_grid'))
 
 
 def get_commands():

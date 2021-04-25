@@ -23,6 +23,15 @@ def encrypt_password(str_pwd):
     return bcrypt.hashpw(str_pwd.encode('utf-8'), bcrypt.gensalt())
 
 
+def is_admin_account(acc):
+    username = acc['username']
+    if user.find_one({'username': username, 'admin': True}) is None:
+        return False
+    else:
+        print(f'Admin {acc["username"]} is logging in.')
+        return True
+
+
 def is_account_exists(acc):
     username = acc['username']
     if user.find_one({'username': username}) is None:
@@ -37,6 +46,7 @@ def cal_rest_rating(rating):
         return float(5*rating['five'] + 4*rating['four'] + 3*rating['three'] + 2*rating['two'] + 1*rating['one']) / sum_rating
     else:
         return 0
+
 
 def register(user_data):
     if not is_account_exists(user_data):
