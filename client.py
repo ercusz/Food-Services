@@ -359,6 +359,14 @@ def main() -> None:
                                                  creationflags=subprocess.CREATE_NEW_CONSOLE)
                         else:
                             print(f'<red>Please input only numbers.(4 digits).</red>')
+                    elif msg.lower() == '/show users':
+                        data = {'type': 'show-users', 'username': username}
+                        socket_instance.send(pickle.dumps(data))
+                    elif msg.lower()[:13] == '/client stop ':
+                        client = msg.split()[2]
+                        data = {'type': 'stop-client', 'username': username, 'client': client}
+                        socket_instance.send(pickle.dumps(data))
+
                     elif msg.lower() == '':
                         continue
                     else:

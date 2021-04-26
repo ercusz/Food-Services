@@ -438,6 +438,35 @@ def handle_user_connection(server: socket.socket, connection: socket.socket, add
                             res = packed_respond('err', 'You don\'t have permission.')
                             connection.send(pickle.dumps(res))
 
+                    elif msg_decode['type'] == 'show-users':
+                        if db.is_admin_account(msg_decode):
+                            users = "Online users: "
+                            for user in connections.values():
+                                users = users + user + ", "
+                            res = packed_respond('success', users[:-2])
+                            connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'You don\'t have permission.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'stop-client':
+                        if db.is_admin_account(msg_decode):
+                            delete_key = None
+                            for key, value in connections.items():
+                                if value == msg_decode['client']:
+                                    delete_key = key
+
+                            if delete_key is not None:
+                                remove_connection(delete_key)
+                                res = packed_respond('success', f'Client that connected by {msg_decode["client"]} was stopped.')
+                                connection.send(pickle.dumps(res))
+                            else:
+                                res = packed_respond('err', 'Client not found.')
+                                connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'You don\'t have permission.')
+                            connection.send(pickle.dumps(res))
+
 
                 #if pickle.loads(msg) != "":
                     #Log message sent by user
