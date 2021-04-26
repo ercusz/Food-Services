@@ -1,18 +1,19 @@
 import os
+import signal
 import socket
+import subprocess
 import threading
 import database as db
 import pickle
 import logging
 import sys
 
-
-
 # Global variable that mantain client's connections
-connections = []
-connections_info = {}
+connections = {}
 login = False
 account = {}
+irc_list = {}
+LISTENING_PORT = 6789
 
 
 def handle_user_connection(server: socket.socket, connection: socket.socket, address: str) -> None:
@@ -21,6 +22,8 @@ def handle_user_connection(server: socket.socket, connection: socket.socket, add
         sent to others users/connections.
     '''
     global login
+    global irc_list
+    global LISTENING_PORT
     while True:
         try:
             # Get client message
@@ -35,10 +38,18 @@ def handle_user_connection(server: socket.socket, connection: socket.socket, add
                         if account['type'] == 'login':
                             del account['type']
                             if db.login(account):
-                                res = packed_respond('success', 'Login Successfully.')
-                                res['isAdmin'] = db.is_admin_account(account)
-                                connection.send(pickle.dumps(res))
-                                login = True
+                                if account['username'] in connections.values():
+                                    res = packed_respond('err', 'Duplicate login, please logout and try again.')
+                                    connection.send(pickle.dumps(res))
+                                    remove_connection(connection)
+                                else:
+                                    res = packed_respond('success', 'Login Successfully.')
+                                    res['isAdmin'] = db.is_admin_account(account)
+                                    connection.send(pickle.dumps(res))
+                                    if connection in connections.keys():
+                                        connections[connection] = account['username']
+                                        logging.info(f'{connections[connection]} logged in, with {address[0]+":"+str(address[1])}')
+                                    login = True
                             else:
                                 res = packed_respond('err', 'Login Fail.')
                                 connection.send(pickle.dumps(res))
@@ -48,6 +59,9 @@ def handle_user_connection(server: socket.socket, connection: socket.socket, add
                                 res = packed_respond('success', 'Register Successfully.')
                                 res['isAdmin'] = db.is_admin_account(account)
                                 connection.send(pickle.dumps(res))
+                                if connection in connections.keys():
+                                    connections[connection] = account['username']
+                                    logging.info(f'{connections[connection]} logged in, with {address[0]+":"+str(address[1])}')
                                 login = True
                             else:
                                 res = packed_respond('err', 'Register Fail.')
@@ -372,11 +386,11 @@ def handle_user_connection(server: socket.socket, connection: socket.socket, add
                             broadcast("\n<bold,,red><fg #000000>\U0000274CSERVER STOPPED</fg #000000></bold,,red>",
                                       socket.socket)
                             if len(connections) > 0:
-                                for conn in connections:
-                                    remove_connection(conn)
+                                for key in list(connections):
+                                    remove_connection(key)
                             server.close()
                         else:
-                            res = packed_respond('err', 'You don\'t have permission..')
+                            res = packed_respond('err', 'You don\'t have permission.')
                             connection.send(pickle.dumps(res))
 
                     elif msg_decode['type'] == 'admin-broadcast':
@@ -385,7 +399,36 @@ def handle_user_connection(server: socket.socket, connection: socket.socket, add
                             msg = prefix + " " +msg_decode['msg']
                             broadcast(msg, socket.socket)
                         else:
-                            res = packed_respond('err', 'You don\'t have permission..')
+                            res = packed_respond('err', 'You don\'t have permission.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'start-irc':
+                        if db.is_admin_account(msg_decode):
+                            if msg_decode['port'] not in irc_list.keys() and msg_decode['port'] != str(LISTENING_PORT):
+                                p = subprocess.Popen(f'python irc_server.py {msg_decode["port"]}',
+                                                 creationflags=subprocess.CREATE_NEW_CONSOLE)
+                                irc_list[msg_decode["port"]] = p
+                                res = packed_respond('success', f'New IRC running with port {msg_decode["port"]}.')
+                                connection.send(pickle.dumps(res))
+                            else:
+                                res = packed_respond('err', 'This port is already running.')
+                                connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'You don\'t have permission.')
+                            connection.send(pickle.dumps(res))
+
+                    elif msg_decode['type'] == 'stop-irc':
+                        if db.is_admin_account(msg_decode):
+                            if msg_decode['port'] in irc_list.keys():
+                                irc_list[msg_decode['port']].kill()
+                                del irc_list[msg_decode['port']]
+                                res = packed_respond('success', f'IRC port {msg_decode["port"]} has stopped.')
+                                connection.send(pickle.dumps(res))
+                            else:
+                                res = packed_respond('err', 'The port was not found in the running irc list.')
+                                connection.send(pickle.dumps(res))
+                        else:
+                            res = packed_respond('err', 'You don\'t have permission.')
                             connection.send(pickle.dumps(res))
 
 
@@ -426,18 +469,18 @@ def broadcast(message: str, connection: socket.socket) -> None:
     '''
 
     # Iterate on connections in order to send message to all client's connected
-    for client_conn in connections:
-        if client_conn != connection:
+    for key, value in connections.items():
+        if key != connection:
             try:
                 # Sending message to client connection
                 res = packed_respond('broadcast', message)
-                client_conn.send(pickle.dumps(res))
+                key.send(pickle.dumps(res))
 
             # if it fails, there is a chance of socket has died
             except Exception as e:
                 logging.error('Error broadcasting message: {e}')
                 change_title()
-                remove_connection(client_conn)
+                remove_connection(key)
 
 
 def remove_connection(conn: socket.socket) -> None:
@@ -446,10 +489,11 @@ def remove_connection(conn: socket.socket) -> None:
     '''
 
     # Check if connection exists on connections list
-    if conn in connections:
+    if conn in connections.keys():
         # Close socket connection and remove connection from connections list
         conn.close()
-        connections.remove(conn)
+        connections.pop(conn)
+
 
 
 def main() -> None:
@@ -472,6 +516,7 @@ def main() -> None:
     global login
     global account
     global connections
+    global LISTENING_PORT
 
     useCustomPort = input('Do you want to setup port manually? (y/N): ')
     if (useCustomPort.lower() == 'y'):
@@ -491,7 +536,7 @@ def main() -> None:
             # Accept client connection
             socket_connection, address = socket_instance.accept()
             # Add client connection to connections list
-            connections.append(socket_connection)
+            connections[socket_connection] = 'guest'
             change_title()
             logging.info(f'({address[0]}:{address[1]} connected)')
             login = False
@@ -512,8 +557,8 @@ def main() -> None:
     finally:
         # In case of any problem we clean all connections and close the server connection
         if len(connections) > 0:
-            for conn in connections:
-                remove_connection(conn)
+            for key, value in connections.items():
+                remove_connection(key)
 
         socket_instance.close()
 

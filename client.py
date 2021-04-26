@@ -329,6 +329,22 @@ def main() -> None:
                             socket_instance.send(pickle.dumps(data))
                         else:
                             print(f'<red>Unknown the `{msg}` command.</red>')
+                    elif msg.lower()[:12] == '/server irc ':
+                        operation = msg.split()[2]
+                        port = msg.split()[3]
+                        if operation.lower() == 'start':
+                            if int(port):
+                                data = {'type': 'start-irc', 'username': username, 'port': port}
+                                socket_instance.send(pickle.dumps(data))
+                            else:
+                                print(f'<red>Please input only numbers.(4 digits).</red>')
+                        elif operation.lower() == 'stop':
+                            if int(port):
+                                data = {'type': 'stop-irc', 'username': username, 'port': port}
+                                socket_instance.send(pickle.dumps(data))
+                            else:
+                                print(f'<red>Please input only numbers.(4 digits).</red>')
+
                     elif msg.lower() == '':
                         continue
                     else:
@@ -480,7 +496,8 @@ def get_admin_commands():
         {'command': '/exit', 'desc': 'disconnect from server & exit program.'},
         {'command': '/clear', 'desc': 'clear your screen.'},
         {'command': '/server <stop>', 'desc': 'the command to stop a current server.'},
-        {'command': '/server irc <port>', 'desc': 'the command to starting an IRC.'},
+        {'command': '/server irc start <port>', 'desc': 'the command to start an IRC chat.'},
+        {'command': '/server irc stop <port>', 'desc': 'the command to stop an IRC chat.'},
         {'command': '/broadcast <message>', 'desc': 'the command to send message to all connected clients.'},
         {'command': '/client stop <username>', 'desc': 'the command to terminate client by username.'},
         {'command': '/account delete <username>', 'desc': 'the command to delete an account by username.'}

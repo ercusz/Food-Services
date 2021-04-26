@@ -28,7 +28,7 @@ def is_admin_account(acc):
     if user.find_one({'username': username, 'admin': True}) is None:
         return False
     else:
-        print(f'Admin {acc["username"]} is logging in.')
+        logging.info(f'(ADMIN){acc["username"]} is logged in.')
         return True
 
 
@@ -80,7 +80,6 @@ def login(data):
     userdata = user.find_one({'username': data['username']})
     if userdata and data['username'] == userdata['username']:
         if bcrypt.checkpw(data['password'].encode(), userdata['password']):
-            logging.info(f'{data["username"]} logged in.')
             return True
     else:
         logging.error(f'Failed to logged in with username: {data["username"]}.')
