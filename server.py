@@ -405,11 +405,18 @@ def handle_user_connection(server: socket.socket, connection: socket.socket, add
                     elif msg_decode['type'] == 'start-irc':
                         if db.is_admin_account(msg_decode):
                             if msg_decode['port'] not in irc_list.keys() and msg_decode['port'] != str(LISTENING_PORT):
+                                prefix = "\n<bold><bg #FF8BB2><fg #000000>💬SERVER</fg #000000></bg #FF8BB2></bold>"
                                 p = subprocess.Popen(f'python irc_server.py {msg_decode["port"]}',
                                                  creationflags=subprocess.CREATE_NEW_CONSOLE)
                                 irc_list[msg_decode["port"]] = p
                                 res = packed_respond('success', f'New IRC running with port {msg_decode["port"]}.')
                                 connection.send(pickle.dumps(res))
+                                if 'client1' in msg_decode.keys() and 'client2' in msg_decode.keys():
+                                    for key, values in connections.items():
+                                        if msg_decode['client1'] == values:
+                                            whisper(f'{prefix} IRC Opened with port {msg_decode["port"]}.\nusing `/join irc <port>` to chat with {msg_decode["client2"]}.', key)
+                                        if msg_decode['client2'] == values:
+                                            whisper(f'{prefix} IRC Opened with port {msg_decode["port"]}.\nusing `/join irc <port>` to chat with {msg_decode["client1"]}.', key)
                             else:
                                 res = packed_respond('err', 'This port is already running.')
                                 connection.send(pickle.dumps(res))
@@ -471,6 +478,26 @@ def broadcast(message: str, connection: socket.socket) -> None:
     # Iterate on connections in order to send message to all client's connected
     for key, value in connections.items():
         if key != connection:
+            try:
+                # Sending message to client connection
+                res = packed_respond('broadcast', message)
+                key.send(pickle.dumps(res))
+
+            # if it fails, there is a chance of socket has died
+            except Exception as e:
+                logging.error('Error broadcasting message: {e}')
+                change_title()
+                remove_connection(key)
+
+
+def whisper(message: str, connection: socket.socket) -> None:
+    '''
+        Broadcast message to all users connected to the server
+    '''
+
+    # Iterate on connections in order to send message to all client's connected
+    for key, value in connections.items():
+        if key == connection:
             try:
                 # Sending message to client connection
                 res = packed_respond('broadcast', message)

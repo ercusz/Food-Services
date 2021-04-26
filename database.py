@@ -28,7 +28,6 @@ def is_admin_account(acc):
     if user.find_one({'username': username, 'admin': True}) is None:
         return False
     else:
-        logging.info(f'(ADMIN){acc["username"]} is logged in.')
         return True
 
 

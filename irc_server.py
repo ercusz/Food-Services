@@ -1,3 +1,4 @@
+import datetime
 import os
 import socket
 import threading
@@ -8,6 +9,8 @@ import sys
 
 
 # Global variable that mantain client's connections
+import time
+
 connections = []
 login = False
 
@@ -29,10 +32,7 @@ def handle_user_connection(server: socket.socket, connection: socket.socket, add
                 if pickle.loads(msg) != "":
                     #Log message sent by user
                     print(f'({address[0]}:{address[1]}) - {pickle.loads(msg)}')
-
-                    #Build message format and broadcast to users connected on server
-                    msg_to_send = f'From ({address[0]}:{address[1]}) - {pickle.loads(msg)}'
-                    broadcast(msg_to_send, connection)
+                    broadcast(pickle.loads(msg), connection)
 
             # Close connection if no message was sent
             else:
@@ -58,8 +58,10 @@ def broadcast(message: str, connection: socket.socket) -> None:
     for client_conn in connections:
         if client_conn != connection:
             try:
+                t = time.localtime()
+                time_str = time.strftime("%H:%M:%S", t)
                 # Sending message to client connection
-                client_conn.send(pickle.dumps(message))
+                client_conn.send(pickle.dumps(f'({time_str})'+message))
 
             # if it fails, there is a chance of socket has died
             except Exception as e:
@@ -116,6 +118,7 @@ def main():
             # Add client connection to connections list
             connections.append(socket_connection)
             logging.info(f'({address[0]}:{address[1]} connected)')
+            broadcast(f'({address[0]}:{address[1]} connected)', socket_connection)
             login = False
             account = {}
             # Start a new thread to handle client connection and receive it's messages

@@ -1,4 +1,6 @@
 from __future__ import print_function, unicode_literals
+
+import subprocess
 import time
 import uuid
 from PyInquirer import style_from_dict, Token, prompt, Separator, Validator, ValidationError
@@ -330,10 +332,16 @@ def main() -> None:
                         else:
                             print(f'<red>Unknown the `{msg}` command.</red>')
                     elif msg.lower()[:12] == '/server irc ':
-                        operation = msg.split()[2]
-                        port = msg.split()[3]
+                        _cmd = msg.split()
+                        operation = _cmd[2]
+                        port = _cmd[3]
                         if operation.lower() == 'start':
-                            if int(port):
+                            if int(port) and len(_cmd) == 6:
+                                client1 = _cmd[4]
+                                client2 = _cmd[5]
+                                data = {'type': 'start-irc', 'username': username, 'port': port, 'client1': client1, 'client2': client2}
+                                socket_instance.send(pickle.dumps(data))
+                            elif int(port) and len(_cmd) == 4:
                                 data = {'type': 'start-irc', 'username': username, 'port': port}
                                 socket_instance.send(pickle.dumps(data))
                             else:
@@ -344,7 +352,13 @@ def main() -> None:
                                 socket_instance.send(pickle.dumps(data))
                             else:
                                 print(f'<red>Please input only numbers.(4 digits).</red>')
-
+                    elif msg.lower()[:10] == '/join irc ':
+                        port = int(msg.split()[2])
+                        if port:
+                            p = subprocess.Popen(f'python irc_client.py {port} {username}',
+                                                 creationflags=subprocess.CREATE_NEW_CONSOLE)
+                        else:
+                            print(f'<red>Please input only numbers.(4 digits).</red>')
                     elif msg.lower() == '':
                         continue
                     else:
@@ -420,6 +434,13 @@ def main() -> None:
                             else:
                                 if all_rest and all_rest[0] == 'err':
                                     break
+                    elif msg.lower()[:10] == '/join irc ':
+                        port = int(msg.split()[2])
+                        if port:
+                            p = subprocess.Popen(f'python irc_client.py {port} {username}',
+                                                 creationflags=subprocess.CREATE_NEW_CONSOLE)
+                        else:
+                            print(f'<red>Please input only numbers.(4 digits).</red>')
 
                     elif msg.lower() == '':
                         continue
@@ -496,7 +517,7 @@ def get_admin_commands():
         {'command': '/exit', 'desc': 'disconnect from server & exit program.'},
         {'command': '/clear', 'desc': 'clear your screen.'},
         {'command': '/server <stop>', 'desc': 'the command to stop a current server.'},
-        {'command': '/server irc start <port>', 'desc': 'the command to start an IRC chat.'},
+        {'command': '/server irc start <port> <username1> <username2>', 'desc': 'the command to start an IRC chat.'},
         {'command': '/server irc stop <port>', 'desc': 'the command to stop an IRC chat.'},
         {'command': '/broadcast <message>', 'desc': 'the command to send message to all connected clients.'},
         {'command': '/client stop <username>', 'desc': 'the command to terminate client by username.'},
