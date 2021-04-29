@@ -1,8 +1,7 @@
 import itertools
 import logging
 from PyInquirer import Separator
-from datetime import datetime, timezone, timedelta
-import pytz
+from datetime import datetime, timedelta
 import pymongo
 import bcrypt
 from pymongo import ReturnDocument
@@ -95,7 +94,7 @@ def check_restaurant_account(data):
 
 def get_restaurant_type():
     for type in restaurant_type.find():
-        logging.info(f'ID: {type["type_id"]}, Name: {type["name"]}')
+        print(f'ID: {type["type_id"]}, Name: {type["name"]}')
 
 
 def add_restaurant_data(data):

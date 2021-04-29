@@ -1,0 +1,64 @@
+[{
+  "_id": {
+    "$oid": "6070e666fa7c0b7a5699e70a"
+  },
+  "category_id": "C01",
+  "name": "A LA CARTE",
+  "rest_id": {
+    "$oid": "607f6dc92050d5bc537b1ee8"
+  }
+},{
+  "_id": {
+    "$oid": "6070e7fefa7c0b7a5699e70b"
+  },
+  "category_id": "C02",
+  "name": "DRINKS",
+  "rest_id": {
+    "$oid": "607f6dc92050d5bc537b1ee8"
+  }
+},{
+  "_id": {
+    "$oid": "6077cec0c5276eff81238742"
+  },
+  "category_id": "C01",
+  "name": "Sushi",
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077ced8c5276eff81238743"
+  },
+  "category_id": "C02",
+  "name": "Appetizer",
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077cee1c5276eff81238744"
+  },
+  "category_id": "C03",
+  "name": "Main",
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "60899ca45e86f275ab8a9d05"
+  },
+  "category_id": "C01",
+  "name": "Coffee",
+  "rest_id": {
+    "$oid": "60899c185e86f275ab8a9d04"
+  }
+},{
+  "_id": {
+    "$oid": "60899cd65e86f275ab8a9d07"
+  },
+  "category_id": "C02",
+  "name": "Dessert_",
+  "rest_id": {
+    "$oid": "60899c185e86f275ab8a9d04"
+  }
+}]

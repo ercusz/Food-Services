@@ -4,7 +4,6 @@ import subprocess
 import time
 import uuid
 from PyInquirer import style_from_dict, Token, prompt, Separator, Validator, ValidationError
-from pprint import pprint
 import regex
 import os
 import socket
@@ -270,10 +269,10 @@ def handle_messages(connection: socket.socket):
         except Exception as e:
             connection.close()
             inf = False
-            exc_type, exc_obj, exc_tb = sys.exc_info()
+            '''exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             print(exc_type, fname, exc_tb.tb_lineno)
-            print(f'Error handling message from server: {e}')
+            print(f'Error handling message from server: {e}')'''
             print(disconnect)
             break
 
@@ -463,9 +462,9 @@ def main() -> None:
     except:
         # print(f'Error, Can\'t connect to server!: {e}')
         # print(disconnect)
-        exc_type, exc_obj, exc_tb = sys.exc_info()
+        '''exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        print(exc_type, fname, exc_tb.tb_lineno)
+        print(exc_type, fname, exc_tb.tb_lineno)'''
         socket_instance.close()
         sys.exit()
 
@@ -529,7 +528,7 @@ def get_admin_commands():
         {'command': '/server irc stop <port>', 'desc': 'the command to stop an IRC chat.'},
         {'command': '/broadcast <message>', 'desc': 'the command to send message to all connected clients.'},
         {'command': '/client stop <username>', 'desc': 'the command to terminate client by username.'},
-        {'command': '/account delete <username>', 'desc': 'the command to delete an account by username.'}
+        #{'command': '/account delete <username>', 'desc': 'the command to delete an account by username.'}
     ]
     header = ['COMMAND', 'DESCRIPTION']
     rows = [x.values() for x in cmd]
@@ -837,11 +836,14 @@ def restaurant_details():
     data = {}
     for rest in all_rest:
         if type(rest) == dict and rest['name'] == selected_rest:
-            rest['rating'] = float(rest['rating'])
-            if rest['rating'] <= 0:
+            try:
+                rest['rating'] = float(rest['rating'])
+                if rest['rating'] <= 0:
+                    rest['rating'] = 'N/A'
+                else:
+                    rest['rating'] = f"{rest['rating']:.1f}"
+            except:
                 rest['rating'] = 'N/A'
-            else:
-                rest['rating'] = f"{rest['rating']:.1f}"
             data = rest
 
     print(f'<bold><fg #ffffff><bg #000000>RESTAURANT: {data["name"]} ({data["rest_type"]}) \nRATING: <fg #F4D03F>★</fg #F4D03F> {data["rating"]} </bg #000000></fg #ffffff></bold>')

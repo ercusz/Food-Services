@@ -1,0 +1,31 @@
+[{
+  "_id": {
+    "$oid": "6070dccffa7c0b7a5699e701"
+  },
+  "type_id": "RT01",
+  "name": "Thai"
+},{
+  "_id": {
+    "$oid": "6070dddffa7c0b7a5699e702"
+  },
+  "type_id": "RT02",
+  "name": "Esan"
+},{
+  "_id": {
+    "$oid": "6070de56fa7c0b7a5699e703"
+  },
+  "type_id": "RT03",
+  "name": "Japanese"
+},{
+  "_id": {
+    "$oid": "6070deb1fa7c0b7a5699e704"
+  },
+  "type_id": "RT04",
+  "name": "Drinks"
+},{
+  "_id": {
+    "$oid": "6070def0fa7c0b7a5699e705"
+  },
+  "type_id": "RT05",
+  "name": "Bakery&Cake"
+}]

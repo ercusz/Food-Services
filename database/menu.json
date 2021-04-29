@@ -1,0 +1,298 @@
+[{
+  "_id": {
+    "$oid": "6070e2f8fa7c0b7a5699e709"
+  },
+  "name": "River prawn spicy soup",
+  "price": 120,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "607f6dc92050d5bc537b1ee8"
+  }
+},{
+  "_id": {
+    "$oid": "6070e8b5fa7c0b7a5699e70c"
+  },
+  "name": "Coke Can 325 ml.",
+  "price": 25,
+  "category_id": "C02",
+  "status": true,
+  "rest_id": {
+    "$oid": "607f6dc92050d5bc537b1ee8"
+  }
+},{
+  "_id": {
+    "$oid": "6077d3d208f578e33d01deb8"
+  },
+  "name": "Spicy_Salmon_Aburi_Roll",
+  "price": 140,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d3e808f578e33d01deb9"
+  },
+  "name": "Ebi_Maki",
+  "price": 80,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d3f808f578e33d01deba"
+  },
+  "name": "California_Roll",
+  "price": 120,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d40808f578e33d01debb"
+  },
+  "name": "Tekka_Maki",
+  "price": 95,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d41808f578e33d01debc"
+  },
+  "name": "Ebi_Tempura_Roll",
+  "price": 90,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d42f08f578e33d01debd"
+  },
+  "name": "Alaska_Salmon_Roll",
+  "price": 130,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d45808f578e33d01debe"
+  },
+  "name": "Ikura_Salmon",
+  "price": 240,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d48c08f578e33d01debf"
+  },
+  "name": "Gyoza",
+  "price": 79,
+  "category_id": "C02",
+  "status": false,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d4a708f578e33d01dec0"
+  },
+  "name": "Takoyaki",
+  "price": 129,
+  "category_id": "C02",
+  "status": false,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d4bf08f578e33d01dec1"
+  },
+  "name": "Spicy_Karaage",
+  "price": 79,
+  "category_id": "C02",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d4f008f578e33d01dec2"
+  },
+  "name": "Oyakodon",
+  "price": 80,
+  "category_id": "C03",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d50d08f578e33d01dec3"
+  },
+  "name": "Yakiniku_Pork_Terriyaki",
+  "price": 100,
+  "category_id": "C03",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d52308f578e33d01dec4"
+  },
+  "name": "Kutsu_Curry",
+  "price": 110,
+  "category_id": "C03",
+  "status": false,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6077d53508f578e33d01dec5"
+  },
+  "name": "Ebi_Curry",
+  "price": 110,
+  "category_id": "C03",
+  "status": true,
+  "rest_id": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "6089945fca5317704b5cd014"
+  },
+  "name": "Espresso",
+  "price": 80,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60898b15ca5317704b5cd007"
+  }
+},{
+  "_id": {
+    "$oid": "60899462ca5317704b5cd015"
+  },
+  "name": "Apple_Pie",
+  "price": 120,
+  "category_id": "C02",
+  "status": true,
+  "rest_id": {
+    "$oid": "60898b15ca5317704b5cd007"
+  }
+},{
+  "_id": {
+    "$oid": "60899463ca5317704b5cd016"
+  },
+  "name": "Pancake",
+  "price": 60,
+  "category_id": "C02",
+  "status": true,
+  "rest_id": {
+    "$oid": "60898b15ca5317704b5cd007"
+  }
+},{
+  "_id": {
+    "$oid": "60899465ca5317704b5cd017"
+  },
+  "name": "Waffle",
+  "price": 60,
+  "category_id": "C02",
+  "status": true,
+  "rest_id": {
+    "$oid": "60898b15ca5317704b5cd007"
+  }
+},{
+  "_id": {
+    "$oid": "60899467ca5317704b5cd018"
+  },
+  "name": "Croissant",
+  "price": 80,
+  "category_id": "C02",
+  "status": true,
+  "rest_id": {
+    "$oid": "60898b15ca5317704b5cd007"
+  }
+},{
+  "_id": {
+    "$oid": "60899d285e86f275ab8a9d08"
+  },
+  "name": "Americano",
+  "price": 80,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60899c185e86f275ab8a9d04"
+  }
+},{
+  "_id": {
+    "$oid": "60899d325e86f275ab8a9d09"
+  },
+  "name": "Cappucino",
+  "price": 80,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60899c185e86f275ab8a9d04"
+  }
+},{
+  "_id": {
+    "$oid": "60899d3b5e86f275ab8a9d0a"
+  },
+  "name": "Espresso",
+  "price": 80,
+  "category_id": "C01",
+  "status": true,
+  "rest_id": {
+    "$oid": "60899c185e86f275ab8a9d04"
+  }
+},{
+  "_id": {
+    "$oid": "60899d465e86f275ab8a9d0b"
+  },
+  "name": "Apple_pie",
+  "price": 120,
+  "category_id": "C02",
+  "status": true,
+  "rest_id": {
+    "$oid": "60899c185e86f275ab8a9d04"
+  }
+},{
+  "_id": {
+    "$oid": "60899d565e86f275ab8a9d0d"
+  },
+  "name": "Waffle",
+  "price": 60,
+  "category_id": "C02",
+  "status": true,
+  "rest_id": {
+    "$oid": "60899c185e86f275ab8a9d04"
+  }
+},{
+  "_id": {
+    "$oid": "60899d635e86f275ab8a9d0e"
+  },
+  "name": "Croissant",
+  "price": 80,
+  "category_id": "C02",
+  "status": true,
+  "rest_id": {
+    "$oid": "60899c185e86f275ab8a9d04"
+  }
+}]

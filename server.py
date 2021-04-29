@@ -1,5 +1,4 @@
 import os
-import signal
 import socket
 import subprocess
 import threading
@@ -317,7 +316,7 @@ def handle_user_connection(server: socket.socket, connection: socket.socket, add
                         del msg_decode['type']
                         result = db.cancel_order(msg_decode)
                         if not result:
-                            res = packed_respond('err', 'Order not found.')
+                            res = packed_respond('err', 'Order cancel fail.')
                             connection.send(pickle.dumps(res))
                         else:
                             res = packed_respond('success', 'The order has been canceled.')
@@ -584,7 +583,7 @@ def main() -> None:
         # Create server and specifying that it can only handle 4 connections by time!
         socket_instance = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         socket_instance.bind(('', LISTENING_PORT))
-        socket_instance.listen(4)
+        socket_instance.listen(10)
 
         logging.info(f'Server running with port {LISTENING_PORT}')
 
@@ -620,6 +619,7 @@ def main() -> None:
 
 
 def change_title():
+    logging.info(str(len(connections)) + " connection(s)")
     os.system("title " + "(SERVER) " + str(len(connections)) + " connection(s)")
 
 

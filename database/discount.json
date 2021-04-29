@@ -1,0 +1,19 @@
+[{
+  "_id": {
+    "$oid": "6070ed92fa7c0b7a5699e70d"
+  },
+  "code": "NEWUSER50",
+  "status": true,
+  "type": "percent",
+  "value": 50,
+  "newuser": true
+},{
+  "_id": {
+    "$oid": "607ec4952f66c2e966e950f2"
+  },
+  "code": "FOOD100",
+  "newuser": false,
+  "status": true,
+  "type": "value",
+  "value": 100
+}]

@@ -1,0 +1,179 @@
+[{
+  "_id": {
+    "$oid": "6070fc9c95b699d6852a986f"
+  },
+  "restaurant": true,
+  "username": "peter",
+  "password": {
+    "$binary": {
+      "base64": "JDJiJDE2JHZrMC81bks2QXJ4WG1OZHV1VExFaS5XTEltbjNRNXRBWGZhWXR0eWZMbGhTbG8vZGtXSlJp",
+      "subType": "00"
+    }
+  },
+  "phone": "0911234567",
+  "createDate": {
+    "$date": "2021-04-10T01:17:16.261Z"
+  },
+  "ownerOf": {
+    "$oid": "60736a36bee684306f00788a"
+  }
+},{
+  "_id": {
+    "$oid": "607116d60c003a0232df0185"
+  },
+  "restaurant": false,
+  "username": "test",
+  "password": {
+    "$binary": {
+      "base64": "JDJiJDE2JG14WE5vdzdWbmQ4QWRZMXRkTUlmL2V4SmFjd3dsQVhFY3AzaTIuenQxOEJ2Q2F2ZmJYNXdt",
+      "subType": "00"
+    }
+  },
+  "phone": "76547657654",
+  "isNewUser": false,
+  "favRest": [
+    {
+      "$oid": "6070e1a2fa7c0b7a5699e708"
+    },
+    {
+      "$oid": "60736a36bee684306f00788a"
+    },
+    {
+      "$oid": "6070df4ffa7c0b7a5699e706"
+    }
+  ],
+  "createDate": {
+    "$date": "2021-04-10T03:09:09.930Z"
+  }
+},{
+  "_id": {
+    "$oid": "607215ad02b239315c8dfc45"
+  },
+  "restaurant": false,
+  "username": "peter_",
+  "password": {
+    "$binary": {
+      "base64": "JDJiJDE2JFM4SHNBYi9lVWZrMWtOajdJaU9XV09HaTdSTUk1bUoxb1lQeGNsOGZaOERNSi4yZ3hCelAy",
+      "subType": "00"
+    }
+  },
+  "phone": "0977776777",
+  "isNewUser": true,
+  "favRest": [],
+  "createDate": {
+    "$date": "2021-04-10T21:16:29.276Z"
+  }
+},{
+  "_id": {
+    "$oid": "6077fe511a567afdef57b4b6"
+  },
+  "restaurant": true,
+  "username": "tester",
+  "phone": "0123456789",
+  "password": {
+    "$binary": {
+      "base64": "JDJiJDE2JFRnSEJtOVNQQ0suM2JBZkV3N3NSMU9hbXlzTUZaNmo2OHZMa3FGN09ITUR4SW5HU0RpRkFL",
+      "subType": "00"
+    }
+  },
+  "createDate": {
+    "$date": "2021-04-15T08:50:25.426Z"
+  }
+},{
+  "_id": {
+    "$oid": "607801901a567afdef57b4b7"
+  },
+  "restaurant": false,
+  "username": "tester2",
+  "phone": "0943242343",
+  "password": {
+    "$binary": {
+      "base64": "JDJiJDE2JEEwb2RCUkxPYzFFSE4wLlQ3Z0FacS53UlpSSW1RSU0yMXJHQnRFY0ZtRkVJZjZ3bU1ybk9h",
+      "subType": "00"
+    }
+  },
+  "isNewUser": true,
+  "favRest": [
+    {
+      "$oid": "60736a36bee684306f00788a"
+    }
+  ],
+  "createDate": {
+    "$date": "2021-04-15T09:04:16.139Z"
+  }
+},{
+  "_id": {
+    "$oid": "607f6c632050d5bc537b1ee7"
+  },
+  "restaurant": true,
+  "username": "nut",
+  "phone": "0877776787",
+  "password": {
+    "$binary": {
+      "base64": "JDJiJDEyJFNRd2p1clZSdGFXQktlLjV0c1FWWWVaT1JpZ0pzR3VYa2xxV0F3UmZzVUV0MTduUEl3Qkp1",
+      "subType": "00"
+    }
+  },
+  "createDate": {
+    "$date": "2021-04-21T00:05:54.825Z"
+  },
+  "ownerOf": {
+    "$oid": "607f6dc92050d5bc537b1ee8"
+  }
+},{
+  "_id": {
+    "$oid": "6085ae43ec08536d7117cb13"
+  },
+  "username": "bobby",
+  "password": {
+    "$binary": {
+      "base64": "JDJiJDEyJGhiY1NPMHFaZC9QUUtNR29zN1dwTy5UTEg1bmNLbWhoOXJKbldwVGtVOTVZWURkOWN1Lnpx",
+      "subType": "00"
+    }
+  },
+  "createDate": {
+    "$date": "2021-04-26T01:00:35.424Z"
+  },
+  "admin": true
+},{
+  "_id": {
+    "$oid": "60899b195e86f275ab8a9d02"
+  },
+  "restaurant": false,
+  "username": "alex",
+  "phone": "1111111111",
+  "password": {
+    "$binary": {
+      "base64": "JDJiJDEyJC9KZ09OZGh4WUFyTWhUYnF3LkM4Ri53VjBiclBpb1RmOXg3QTFUemk5V1lVVGhBWGVWeDcy",
+      "subType": "00"
+    }
+  },
+  "isNewUser": false,
+  "favRest": [
+    {
+      "$oid": "60899c185e86f275ab8a9d04"
+    }
+  ],
+  "createDate": {
+    "$date": "2021-04-29T00:27:53.408Z"
+  }
+},{
+  "_id": {
+    "$oid": "60899b635e86f275ab8a9d03"
+  },
+  "restaurant": true,
+  "username": "john",
+  "phone": "0123456789",
+  "password": {
+    "$binary": {
+      "base64": "JDJiJDEyJHEzRVI4am9rby54bXJ0ejBUSk0wZE9aTXRiSmtEREJqWFBFTVdjYkNZMVA3VndNLnhRejdD",
+      "subType": "00"
+    }
+  },
+  "createDate": {
+    "$date": "2021-04-29T00:29:07.065Z"
+  },
+  "ownerOf": {
+    "$oid": "60899c185e86f275ab8a9d04"
+  }
+}]

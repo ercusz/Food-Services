@@ -1,0 +1,76 @@
+[{
+  "_id": {
+    "$oid": "6070e0bcfa7c0b7a5699e707"
+  },
+  "name": "Je_Tang_Fried_Chicken",
+  "rest_type": "RT01",
+  "phone": "086-7676787",
+  "rating": {
+    "five": 0,
+    "four": 0,
+    "three": 0,
+    "two": 0,
+    "one": 0
+  },
+  "open": false
+},{
+  "_id": {
+    "$oid": "6070e1a2fa7c0b7a5699e708"
+  },
+  "name": "Bow_Grilled_Chicken_&_Som-Tum",
+  "rest_type": "RT02",
+  "phone": "096-3464566",
+  "rating": {
+    "five": 0,
+    "four": 0,
+    "three": 0,
+    "two": 0,
+    "one": 0
+  },
+  "open": true
+},{
+  "_id": {
+    "$oid": "60736a36bee684306f00788a"
+  },
+  "name": "Sushi_House",
+  "rest_type": "RT03",
+  "phone": "043433434",
+  "rating": {
+    "five": 1,
+    "four": 0,
+    "three": 1,
+    "two": 0,
+    "one": 0
+  },
+  "open": true
+},{
+  "_id": {
+    "$oid": "607f6dc92050d5bc537b1ee8"
+  },
+  "name": "Khun-Nut_Thai_Restuarant",
+  "rest_type": "RT01",
+  "phone": "043-1231234",
+  "rating": {
+    "five": 5,
+    "four": 1,
+    "three": 2,
+    "two": 0,
+    "one": 0
+  },
+  "open": true
+},{
+  "_id": {
+    "$oid": "60899c185e86f275ab8a9d04"
+  },
+  "name": "John_Coffee&Bakery",
+  "rest_type": "RT05",
+  "phone": "043111111",
+  "rating": {
+    "five": 1,
+    "four": 0,
+    "three": 0,
+    "two": 0,
+    "one": 0
+  },
+  "open": true
+}]
